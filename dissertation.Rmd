@@ -1,0 +1,164 @@
+---
+title: "Dissertation"
+author: "Emmanouil Mertzianis"
+date: "10/1/2021"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    fig_caption: yes
+    number_sections: yes
+    toc: true
+    toc_depth: 2
+fontsize: 10pt
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+```{r libraries}
+library(knitr)
+
+library(skimr)
+library(tidyverse)
+library(GGally)
+library(corrplot)
+```
+
+
+
+\newpage
+
+# Introduction {#Intro}
+
+## The real estate market and the importance of predictive and descriptive models
+
+## The purpose of the paper
+
+## Structure of the paper
+~~ TODO ~~
+
+
+
+# Literature {#lit}
+~~ TODO ~~
+
+
+# Exploratory Data Analysis {#EDA}
+```{r loadData}
+houseprices <- read.csv("~/Desktop/Glasgow Project/housing.csv")
+
+houseprices$bath <- as.factor(houseprices$bath)
+houseprices$parking <- as.factor(houseprices$parking)
+```
+
+Before we start searching for the best regression model through formal data analysis and model fitting, it is important to explore our data through numerical and graphical summaries. This will allow for a better understanding of the patterns in and the structure of our data and it will enable us to make educated decisions during model fitting. For this purpose, we start by exploring each variable individually and, then, we focus on the relationships between the variables with emphasis on the ones related to the sale price, which is the variable of interest.
+
+
+## Exploring variables individually
+```{r skimdata, eval= TRUE, fig.cap="Test", out.width="70%"}
+skimmed <- houseprices %>% 
+  skimr::skim() %>%
+  skimr::focus("# missing"=n_missing, "Unique lvls"=factor.n_unique, Mean=numeric.mean, "SD"=numeric.sd, Min=numeric.p0, "25%"=numeric.p25, Median=numeric.p50, "75%"=numeric.p75, Max=numeric.p100)
+
+
+# counts for the categorical variables
+bathfreqTable <- houseprices %>%
+  count(bath) %>%
+  spread(key="bath", value="n")
+
+bathfreq <- ""
+for(bathnum in colnames(bathfreqTable)) {
+  if(bathfreq == "") {
+    bathfreq <- paste(bathnum,bathfreqTable[bathnum], sep=": ")
+  } else {
+    bathfreq <- paste(bathfreq, paste(bathnum,bathfreqTable[bathnum], sep=": "), sep=", ")
+  }
+}
+
+parkingfreqTable <- houseprices %>%
+  count(parking) %>%
+  spread(key="parking", value="n")
+
+parkingfreq <- ""
+for(parkingtype in colnames(parkingfreqTable)) {
+  if(parkingfreq == "") {
+    parkingfreq <- paste(parkingtype,parkingfreqTable[parkingtype], sep=": ")
+  } else {
+    parkingfreq <- paste(parkingfreq, paste(parkingtype,parkingfreqTable[parkingtype], sep=": "), sep=", ")
+  }
+}
+
+## The 2 tables ##
+# Factors table
+skimr::yank(skimmed, "factor") %>%
+  rename("Variable"=skim_variable) %>%
+  mutate("Counts"=c(bathfreq, parkingfreq)) %>%
+  kable(caption="\\label{tab:statsCatOriginal} Summary statistics for the categorical variables in the initial data set.")
+
+# Numerics table
+skimr::yank(skimmed, "numeric") %>%
+  rename("Variable"=skim_variable) %>%
+  kable(caption="\\label{tab:statsNumOriginal} Summary statistics for the numerical variables in the initial data set.")
+
+```
+
+As a first step, we are interested in the summary statistics of the individual numerical and categorical variables in our data. The tables \ref{tab:statsCatOriginal} and \ref{tab:statsNumOriginal} contain useful statistics about the variables, prior to making any alterations to the original data set. 
+
+Regarding the categorical variables, we observe that there are five and four unique levels for the categorical variables _"bath"_ and _"parking"_, respectively. Table \ref{tab:statsCatOriginal} shows that most of the sale entries refer to houses with two baths or an "open" type parking. However, the most important observation to note here is a single entry with 63 bathrooms, which is exceedingly higher than all the rest observations in our data that are limited to just 4 bathrooms at maximum. Such an observation is likely to be an outlier and the exploratory analysis to follow further underpins this assumption.
+
+Table \ref{tab:statsNumOriginal} shows statistics about the numerical variables. It becomes apparent that the numerical variables are measured in different numerical scales with differences in the magnitude of their values. In terms of magnitude and standard deviation in ascending order:
+
+* _"elevation"_ presents the smallest values that do not exceed the value of 47 and the smallest standard deviation.
+
+* _"precip"_ and _"sqft"_ come second and third, respectively, with the latter having almost double the standard deviation of the former.
+
+* The three variables representing the distance from three chosen amenities (i.e. _dist_am1_, _dist_am2_ and _dist_am3_) exhibit almost the same standard deviation, however it seems that the $75^{th}$ percentile of _"dist_am1"_ is almost equal to the $25^{th}$ percentile of _"dist_am2"_ and the $75^{th}$ percentile of _"dist_am2"_ is roughly the same as the $25^{th}$ percentile of _"dist_am3"_. This indicates that, on average, the distance of houses from "amenity 1" could be significantly smaller than that from "amenity 2" and equally for the distances of houses from the "amenity 2" and "amenity 3".
+
+* The numerical scale and standard deviation of _"price"_ are the largest among all numerical variables.
+
+Additionally, it is interesting to point out that:
+1. no missing values
+2. high outlier for price even for its magnitude (times the standard deviation from the mean)
+3. all numerical variables have a mean that's close to the median.
+
+
+
+```{r priceExtremeOutlierBoxplot, out.width="50%", fig.align='center', fig.cap="\\label{priceBoxplot} Boxplot of sale price."}
+boxplot(houseprices$price, xlab="Sale Price")
+```
+
+```{r extremeOutlier}
+houseprices[which.max(houseprices$price),] %>%
+  kable(caption="\\label{tab:ExtremeOutlier} The extreme observation in the data.")
+
+# removing the extreme high outlier from the data set
+houseprices <- houseprices[-which.max(houseprices$price),]
+```
+
+```{r boxdata, fig.align='center', out.width="70%", fig.cap="\\label{fig:boxplotOriginal} Boxplots on all numerical variables in the initial data set."}
+
+houseprices %>%
+  select(-bath, -parking) %>%
+  gather(key="varname", value = "value") %>%
+  ggplot(mapping = aes(x = varname, y = value)) +
+  geom_boxplot() +
+  xlab("Numerical Variables") + ylab("Values")
+```
+
+
+
+
+~~ TODO ~~
+
+# Model Fitting: Selecting the best possible regression model {#ModelFitting}
+~~ TODO ~~
+
+# Conclusions
+~~ TODO ~~
+
+# Further Work
+~~ TODO ~~
+
+# References
