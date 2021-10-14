@@ -57,7 +57,7 @@ Before we start searching for the best regression model through formal data anal
 
 
 ## Exploring variables individually
-```{r skimdata, eval= TRUE, fig.cap="Test", out.width="70%"}
+```{r skimdata}
 skimmed <- houseprices %>% 
   skimr::skim() %>%
   skimr::focus("# missing"=n_missing, "Unique lvls"=factor.n_unique, Mean=numeric.mean, "SD"=numeric.sd, Min=numeric.p0, "25%"=numeric.p25, Median=numeric.p50, "75%"=numeric.p75, Max=numeric.p100)
@@ -104,7 +104,7 @@ skimr::yank(skimmed, "numeric") %>%
 
 ```
 
-As a first step, we are interested in the summary statistics of the individual numerical and categorical variables in our data. The tables \ref{tab:statsCatOriginal} and \ref{tab:statsNumOriginal} contain useful statistics about the variables, prior to making any alterations to the original data set. 
+As a first step, we are interested in the summary statistics of the individual numerical and categorical variables in our data. The tables \ref{tab:statsCatOriginal} and \ref{tab:statsNumOriginal} contain useful statistics about the variables, prior to making any alterations to the original data set. We note that there are no missing values for any of our variables in the data.
 
 Regarding the categorical variables, we observe that there are five and four unique levels for the categorical variables _"bath"_ and _"parking"_, respectively. Table \ref{tab:statsCatOriginal} shows that most of the sale entries refer to houses with two baths or an "open" type parking. However, the most important observation to note here is a single entry with 63 bathrooms, which is exceedingly higher than all the rest observations in our data that are limited to just 4 bathrooms at maximum. Such an observation is likely to be an outlier and the exploratory analysis to follow further underpins this assumption.
 
@@ -114,41 +114,74 @@ Table \ref{tab:statsNumOriginal} shows statistics about the numerical variables.
 
 * _"precip"_ and _"sqft"_ come second and third, respectively, with the latter having almost double the standard deviation of the former.
 
-* The three variables representing the distance from three chosen amenities (i.e. _dist_am1_, _dist_am2_ and _dist_am3_) exhibit almost the same standard deviation, however it seems that the $75^{th}$ percentile of _"dist_am1"_ is almost equal to the $25^{th}$ percentile of _"dist_am2"_ and the $75^{th}$ percentile of _"dist_am2"_ is roughly the same as the $25^{th}$ percentile of _"dist_am3"_. This indicates that, on average, the distance of houses from "amenity 1" could be significantly smaller than that from "amenity 2" and equally for the distances of houses from the "amenity 2" and "amenity 3".
+* The three variables representing the distance from three chosen amenities (i.e. _dist_am1_, _dist_am2_ and _dist_am3_) exhibit almost the same standard deviation. However, it seems that the $75^{th}$ percentile of _"dist_am1"_ is, relatively, almost equal to the $25^{th}$ percentile of _"dist_am2"_, while the $75^{th}$ percentile of _"dist_am2"_ is roughly the same as the $25^{th}$ percentile of _"dist_am3"_. This could indicate that, on average, the distance of houses in the data set from _"Amenity 1"_ could be significantly smaller than that from _"Amenity 2"_ and equally for the distances of houses from the _"Amenity 2"_ and _"Amenity 3"_.
 
-* The numerical scale and standard deviation of _"price"_ are the largest among all numerical variables.
-
-Additionally, it is interesting to point out that:
-1. no missing values
-2. high outlier for price even for its magnitude (times the standard deviation from the mean)
-3. all numerical variables have a mean that's close to the median.
-
-
+* The numerical scale and the standard deviation of _"price"_ are the largest among all numerical variables. Also, it is interesting to point out that there exists a high outlier in _"price"_, even relative to its large magnitude, as it is `r (max(houseprices$price) - mean(houseprices$price))/sd(houseprices$price)` times the standard deviation greater than the mean value. The boxplot in figure \ref{priceBoxplot} further illustrates the extreme outlier in _"price"_.
 
 ```{r priceExtremeOutlierBoxplot, out.width="50%", fig.align='center', fig.cap="\\label{priceBoxplot} Boxplot of sale price."}
 boxplot(houseprices$price, xlab="Sale Price")
 ```
 
+
+Table \ref{tab:ExtremeOutlier} focuses on the aforementioned extreme outlier in _"price"_. The table reveals that the outlier (that is, the `r which.max(houseprices$price)`$^{th}$ observation) contains extreme values in other variables as well. Specifically, that same observation is the one related to the 63 bathrooms, which we have already noted as a possible extreme value, and through further exploration we can show that its value of `r max(houseprices$sqft)` square feet is also extremely high. Those findings suggest that observation `r which.max(houseprices$price)` could have probably come from a different population compared to the rest of the observations in the data. In any case, we lack enough data between this extreme observation and the rest ones, to the point that any model fitting with this outlier included would result in speculating after some range of values and would probably lead to a heavily influenced model. Therefore, we conclude that **we have enough evidence to support our decision on removing observation `r which.max(houseprices$price)` before we move on any further**.
+
+
 ```{r extremeOutlier}
 houseprices[which.max(houseprices$price),] %>%
-  kable(caption="\\label{tab:ExtremeOutlier} The extreme observation in the data.")
+  kable(caption="\\label{tab:ExtremeOutlier} The extreme observation in the variable _'price'_.")
+```
 
+```{r}
 # removing the extreme high outlier from the data set
 houseprices <- houseprices[-which.max(houseprices$price),]
 ```
 
-```{r boxdata, fig.align='center', out.width="70%", fig.cap="\\label{fig:boxplotOriginal} Boxplots on all numerical variables in the initial data set."}
+
+
+```{r skimOutlierRemoved}
+skimmed <- houseprices %>% 
+  skimr::skim() %>%
+  skimr::focus("# missing"=n_missing, Mean=numeric.mean, "SD"=numeric.sd, Min=numeric.p0, "25%"=numeric.p25, Median=numeric.p50, "75%"=numeric.p75, Max=numeric.p100)
+
+# Numerics table
+skimr::yank(skimmed, "numeric") %>%
+  rename("Variable"=skim_variable) %>%
+  kable(caption="\\label{tab:statsNumOutlierRemoved} Summary statistics for the numerical variables after removing the extreme outlier.")
+
+```
+
+After removing the outlier, we can derive similar conclusions about the variables _"elevation"_, _"dist_am1"_, _"dist_am2"_, _"dist_am3"_ and _"precip"_ to the ones we derived earlier. However, we observe a significant drop in the maximum value of _"sqft"_ along with a significant decrease in its standard deviation that is now relatively close to that of _"precip"_. Also, the maximum value and the standard deviation of _"price"_ incurred a large drop.
+
+The boxplots in figure \ref{fig:boxplotAllOutlierRemoval} reveal graphically the already discussed differences in the magnitude and the variation between the numerical variables, by gradually removing variables plot to plot.
+
+
+
+```{r boxdata, fig.align='center', out.width=".49\\linewidth", fig.width=3, fig.height=3, fig.show='hold', fig.cap="\\label{fig:boxplotAllOutlierRemoval} Boxplots on all numerical variables without the extreme outlier."}
 
 houseprices %>%
   select(-bath, -parking) %>%
   gather(key="varname", value = "value") %>%
   ggplot(mapping = aes(x = varname, y = value)) +
   geom_boxplot() +
-  xlab("Numerical Variables") + ylab("Values")
+  xlab("Numerical Variables") + ylab("Values") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+houseprices %>%
+  select(-bath, -parking, -price) %>%
+  gather(key="varname", value = "value") %>%
+  ggplot(mapping = aes(x = varname, y = value)) +
+  geom_boxplot() +
+  xlab("Numerical Variables") + ylab("Values") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+houseprices %>%
+  select(elevation, precip, sqft) %>%
+  gather(key="varname", value = "value") %>%
+  ggplot(mapping = aes(x = varname, y = value)) +
+  geom_boxplot() +
+  xlab("Numerical Variables") + ylab("Values") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
-
-
-
 
 ~~ TODO ~~
 

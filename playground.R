@@ -1,4 +1,4 @@
-houseprices <- read.csv("~/Desktop/GlasgowProject/Glasgow Project/housing.csv")
+houseprices <- read.csv("~/Desktop/Glasgow Project/housing.csv")
 
 # bath and parking is factor
 houseprices$bath <- factor(houseprices$bath)
