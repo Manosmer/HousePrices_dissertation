@@ -1,4 +1,5 @@
 houseprices <- read.csv("~/Desktop/Glasgow Project/housing.csv")
+str(houseprices)
 
 # bath and parking is factor
 houseprices$bath <- factor(houseprices$bath)
@@ -10,7 +11,7 @@ houseprices <- houseprices[-348,]
 # histogram of price coloured by bath category
 library(tidyverse)
 library(ggridges)
-ggplot(data=houseprices, mapping = aes(x=price, fill=bath)) +
+ggplot(data=houseprices, mapping = aes(x=sqft, fill=bath)) +
   geom_histogram(bins=100)
 
 

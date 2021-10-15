@@ -150,9 +150,9 @@ skimr::yank(skimmed, "numeric") %>%
 
 ```
 
-After removing the outlier, we can derive similar conclusions about the variables _"elevation"_, _"dist_am1"_, _"dist_am2"_, _"dist_am3"_ and _"precip"_ to the ones we derived earlier. However, we observe a significant drop in the maximum value of _"sqft"_ along with a significant decrease in its standard deviation that is now relatively close to that of _"precip"_. Also, the maximum value and the standard deviation of _"price"_ incurred a large drop.
+After removing the outlier, our conclusions about the variables _"elevation"_, _"dist_am1"_, _"dist_am2"_, _"dist_am3"_ and _"precip"_ are similar to the ones we derived earlier. However, we observe a significant drop in the maximum value of _"sqft"_ along with a significant decrease in its standard deviation, which has now become relatively close to that of _"precip"_. Also, the maximum value and the standard deviation of _"price"_ incurred a large drop.
 
-The boxplots in figure \ref{fig:boxplotAllOutlierRemoval} reveal graphically the already discussed differences in the magnitude and the variation between the numerical variables, by gradually removing variables plot to plot.
+The boxplots in figure \ref{fig:boxplotAllOutlierRemoval} present graphically the already discussed differences in the magnitude and the variation between the numerical variables, by gradually removing variables from plot to plot. Interestingly, the boxplots suggest that the sample distributions of all numerical variables are fairly symmetrical as we observe the median to lie almost at the middle of the IQR box and roughly equal tails at the top and the bottom. This observation is backed by the computed numerical statistics, where the median is reported to be quite close to the mean value for every numerical variable. **A closer view using histograms in figure \ref{fig:histogramsAllOutlierRemoval} reveals that the sample distribution of all numerical variables in the data resembles that of a sample coming from a Normal Distribution.**
 
 
 
@@ -183,7 +183,40 @@ houseprices %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
 
-~~ TODO ~~
+
+```{r histograms, fig.align='center', out.width=".49\\linewidth", fig.width=2, fig.height=2, fig.show='hold', fig.cap="\\label{fig:histogramsAllOutlierRemoval} Histograms on all numerical variables without the extreme outlier. The red dashed line represents the mean value of the variable's values."}
+
+numericalVariables<- houseprices %>%
+                      select(-bath, -parking)
+
+# for(colname in colnames(numericalVariables)) {
+#   hist(numericalVariables[[colname]], breaks = 80,
+#       xlab = colname, main = NULL)
+# }
+
+numericalVariables %>%
+  ggplot(aes(x = price)) + geom_histogram(bins = 100) + geom_vline(xintercept = mean(numericalVariables$price), colour="red", lty = 2)
+
+numericalVariables %>%
+  ggplot(aes(x = sqft)) + geom_histogram(bins = 80) + geom_vline(xintercept = mean(numericalVariables$sqft), colour="red", lty = 2)
+
+numericalVariables %>%
+  ggplot(aes(x = elevation)) + geom_histogram(bins = 80) + geom_vline(xintercept = mean(numericalVariables$elevation), colour="red", lty = 2)
+
+numericalVariables %>%
+  ggplot(aes(x = precip)) + geom_histogram(bins = 80) + geom_vline(xintercept = mean(numericalVariables$precip), colour="red", lty = 2)
+
+numericalVariables %>%
+  ggplot(aes(x = dist_am1)) + geom_histogram(bins = 80) + geom_vline(xintercept = mean(numericalVariables$dist_am1), colour="red", lty = 2)
+
+numericalVariables %>%
+  ggplot(aes(x = dist_am2)) + geom_histogram(bins = 80) + geom_vline(xintercept = mean(numericalVariables$dist_am2), colour="red", lty = 2)
+
+numericalVariables %>%
+  ggplot(aes(x = dist_am3)) + geom_histogram(bins = 80) + geom_vline(xintercept = mean(numericalVariables$dist_am3), colour="red", lty = 2)
+
+```
+
 
 # Model Fitting: Selecting the best possible regression model {#ModelFitting}
 ~~ TODO ~~
