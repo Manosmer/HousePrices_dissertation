@@ -36,7 +36,7 @@ library(corrplot)
 
 ## The purpose of the paper
 
-## Structure of the paper
+## The structure of the paper
 ~~ TODO ~~
 
 
@@ -114,7 +114,7 @@ Table \ref{tab:statsNumOriginal} shows statistics about the numerical variables.
 
 * _"precip"_ and _"sqft"_ come second and third, respectively, with the latter having almost double the standard deviation of the former.
 
-* The three variables representing the distance from three chosen amenities (i.e. _dist_am1_, _dist_am2_ and _dist_am3_) exhibit almost the same standard deviation. However, it seems that the $75^{th}$ percentile of _"dist_am1"_ is, relatively, almost equal to the $25^{th}$ percentile of _"dist_am2"_, while the $75^{th}$ percentile of _"dist_am2"_ is roughly the same as the $25^{th}$ percentile of _"dist_am3"_. This could indicate that, on average, the distance of houses in the data set from _"Amenity 1"_ could be significantly smaller than that from _"Amenity 2"_ and equally for the distances of houses from the _"Amenity 2"_ and _"Amenity 3"_.
+* The three variables representing the distance from three chosen amenities (i.e. _dist_am1_, _dist_am2_ and _dist_am3_) exhibit almost the same standard deviation. However, it seems that the $75^{th}$ percentile of _"dist_am1"_ is, relatively close to the $25^{th}$ percentile of _"dist_am2"_, while the $25^{th}$ percentile of _"dist_am3"_ is a bit higher than the median of _"dist_am2"_. This could indicate that, on average, the distance of houses from _"Amenity 1"_ could be significantly smaller than that from _"Amenity 2"_ and equally for the distances of houses from the _"Amenity 2"_ and _"Amenity 3"_.
 
 * The numerical scale and the standard deviation of _"price"_ are the largest among all numerical variables. Also, it is interesting to point out that there exists a high outlier in _"price"_, even relative to its large magnitude, as it is `r (max(houseprices$price) - mean(houseprices$price))/sd(houseprices$price)` times the standard deviation greater than the mean value. The boxplot in figure \ref{priceBoxplot} further illustrates the extreme outlier in _"price"_.
 
