@@ -1,6 +1,15 @@
 houseprices <- read.csv("~/Desktop/Glasgow Project/housing.csv")
 str(houseprices)
 
+houseprices %>%
+  select(-bath, -parking, -price) %>%
+  gather(key="varname", value = "value") %>%
+  ggplot(mapping = aes(x = varname, y = value)) +
+  geom_boxplot() +
+  xlab("Numerical Variables") + ylab("Values") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
 # bath and parking is factor
 houseprices$bath <- factor(houseprices$bath)
 houseprices$parking <- as.factor(houseprices$parking)
