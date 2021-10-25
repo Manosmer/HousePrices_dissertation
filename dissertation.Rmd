@@ -222,10 +222,10 @@ numericalVariables %>%
 \newpage
 
 ## Exploring relationships
-The primary objective of this paper is to create the most accurate predictive model about _"price"_ using the rest of the available variables in the data. Therefore, it is of interest to explore the relationships of _"price"_ against each one of the rest of the numerical variables. For this purpose, we first explore the relationships of _"price"_ against all other numerical variables and, then, we focus on the categorical variables. Finally, we analyse the relationships of _"price"_ against the numerical variables, while considering the different levels of the categorical variables.
+The primary objective of this paper is to create the most accurate predictive model about _"price"_ using the rest of the available variables in the data. Therefore, it is of interest to explore the relationships of _"price"_ against the other variables. For this purpose, we first explore the relationships of _"price"_ against all other numerical variables and, then, we focus on the categorical variables. Finally, we analyse the relationships of _"price"_ against the numerical variables on different levels of the categorical variables.
 
 
-### Numerical
+### Numerical explanatory variables
 
 Figure \ref{fig:scatterPriceAll} depicts the relationships of _"price"_ against all the rest numerical variables in the form of scatterplots with a simple linear regression line superimposed. From the scatterplots, we observe a random scattering of the data points across all values with no obvious patterns suggesting that there is little association between _"price"_ and any one of the other numerical variables. Additionally, the small slope of the superimposed regression lines along with the little correlation revealed in table \ref{tab:corrplot} show that there is no linear relationship between any of the numerical variables and _"price"_. However, we observe a high correlation between _"dist_am3"_/_"dist_am1"_ and a moderate correlation between _"dist_am1"_/_"dist_am2"_ and _"dist_am2"_/_"dist_am3"_ indicating that there is possibly multicollinearity between the distance variables.
 
@@ -269,7 +269,7 @@ corrplot::corrplot(cor(houseprices %>% select(-bath, -parking)), method="number"
 ```
 
 
-### Categorical
+### Categorical explanatory variables
 
 Figure \ref{fig:boxplotsCat} depicts the sample distribution of _"price"_ for each level of _"bath"_ or _"parking"_. Regarding _"parking"_, we observe quite a significant overlap between the boxplots with small differences between them suggesting that there is little to no difference in the sale price for houses in different _"parking"_ categories. In contrast, we see that there is no overlap between the boxplots of _"price"_ in different _"bath"_ categories with the sale price actually increasing as the number of bathrooms increases. As it can be seen more clearly in figure \ref{fig:histPricebyBath}, the seemingly normally-distributed sample of _"price"_ is completely partitioned based on _"bath"_ into 4 non-overlapping chunks. These findings indicate strongly that the categorical variable _"bath"_ is a significant predictor with a positive relationship with _"price"_.
 
