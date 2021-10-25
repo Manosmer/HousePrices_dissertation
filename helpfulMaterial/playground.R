@@ -17,10 +17,14 @@ houseprices$parking <- as.factor(houseprices$parking)
 # extreme outlier removal
 houseprices <- houseprices[-348,]
 
+
+ggplot(houseprices, aes(y = price, fill = bath, colour = parking)) +
+  geom_boxplot()
+
 # histogram of price coloured by bath category
 library(tidyverse)
 library(ggridges)
-ggplot(data=houseprices, mapping = aes(x=sqft, fill=bath)) +
+ggplot(data=houseprices, mapping = aes(x=price, fill=bath)) +
   geom_histogram(bins=100)
 
 
