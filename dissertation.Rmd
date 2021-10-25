@@ -24,6 +24,7 @@ library(knitr)
 
 library(skimr)
 library(tidyverse)
+library(moderndive)
 library(GGally)
 library(corrplot)
 ```
@@ -367,6 +368,29 @@ houseprices %>%
 
 
 # Model Fitting: Selecting the best possible regression model {#ModelFitting}
+
+
+## Fitting the full model
+In section \ref{EDA}, we discussed about the different available variables in our data and we explored numerically and graphically the relationships between them and especially with _"price"_. Based on our findings, we select the full additive model as our full model to start with:
+
+$$ price_i =  \beta_0 + \beta_1\cdot{\mathbb{I}bath2_i} + \beta_2\cdot{\mathbb{I}bath3_i} + \beta_3\cdot{\mathbb{I}bath4_i}$$
+$$\beta_4\cdot{\mathbb{I}parkingNoParking_i} + \beta_5\cdot{\mathbb{I}parkingNotProvided_i} + \beta_6\cdot{\mathbb{I}parkingOpen_i} + $$
+$$\beta_7\cdot{sqft_i} + \beta_8\cdot{precip_i} + \beta_9\cdot{elev_i} + \beta_{10}\cdot{dist1_i} + \beta_{11}\cdot{dist2_i} + \beta_{12}\cdot{dist3_i} + \epsilon_i$$
+$$,\epsilon_i\sim N(0, \sigma^2)$$
+, where the indicator variables are equal to $1$ when the $i^{th}$ observation's corresponding variable takes the related value and $0$ otherwise. (**Baseline categories**: bath=1, parking="Covered")
+
+```{r}
+fullModel <- lm(price ~ ., data = houseprices)
+get_regression_table(fullModel) %>%
+  select(term, estimate, p_value, lower_ci, upper_ci) %>%
+  kable(caption = "\\label{tab:FullModelFit} The estimated regression coefficients along with the corresponding p-values and the Confidence Intervals from fitting the full additive model.")
+```
+
+## Variable Selection
+
+## Regularised regression with Lasso and Ridge
+
+
 ~~ TODO ~~
 
 # Conclusions
