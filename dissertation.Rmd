@@ -295,7 +295,7 @@ ggplot(data=houseprices, mapping = aes(x=price, fill=bath)) +
 
 ### Interactions
 
-Finally, it is important to investigate any interactions between categorical and numerical explanatory variables. Figure \ref{fig:scatterPriceAllByBath} shows the relationship of each numerical variable with _"price"_, on each _"bath"_ level. On all plots, we observe four distinct layers of data corresponding to each _"bath"_ level. As we have already explained, these layers represent the full partitioning of the sample distribution of _"price"_ into four non-overlapping chunks when considering the variable _"bath"_. It is apparent that the observations in the data extend across the whole range of values on all numerical explanatory variables on every different _"bath"_ level and that the nature of the relationship between those variabes and _"price"_ stays the same regardless of the level of _"bath"_. This indicates that there is no interaction between _"bath"_ and any of the numerical variables and that the additive model is probably appropriate in this case. Furthermore, the relationships with _"price"_ do not seem to improve for any of the numerical variables when we take _"bath"_ into consideration.
+Finally, it is important to investigate any interactions between categorical and numerical explanatory variables. Figure \ref{fig:scatterPriceAllByBath} shows the relationship of each numerical variable with _"price"_, on each _"bath"_ level. On all plots, we observe four distinct layers of data corresponding to each _"bath"_ level. As we have already explained, these layers represent the full partitioning of the sample distribution of _"price"_ into four non-overlapping chunks when considering the variable _"bath"_. It is apparent that the observations in the data extend across the whole range of values on all numerical explanatory variables on every different _"bath"_ level and that the nature of the relationship between those variabes and _"price"_ stays almost the same regardless of the level of _"bath"_. This indicates that there is no interaction between _"bath"_ and any of the numerical variables and that the additive model is probably appropriate in this case. Furthermore, the relationships with _"price"_ do not seem to improve for any of the numerical variables when we take _"bath"_ into consideration.
 
 Similarly for the categorical variable _"parking"_, it can be shown that there is an almost complete overlap between the layers of data of the different _"parking"_ levels. This suggests that the single regression line model should be suitable for each relationship with _"price"_, with no differences in the slopes or the intercept terms among the categories.
 
@@ -369,22 +369,45 @@ houseprices %>%
 
 # Model Fitting: Selecting the best possible regression model {#ModelFitting}
 
+The **primary objective** of this paper is to investigate and design the best possible _predictive_ regression model to accurately predict the sale price of a house based on the rest of its attributes. The main approach we chose for this problem is to perform **variable selection on the full model via backwards elimination**. 
+
+For this purpose, we decided on assessing our models' performance and conduct variable selection based on the validation(out-of-sample) prediction error. We achieve this by splitting our original data set into three subsets; training, validation and test set. These sets will be used for training(fitting) the models, assessing their prediction performance(out-of-sample prediction) and report a final expected prediction performance, respectively. The split we chose to use is:
+
+* 299 observations for training, 
+* 150 observations for assessment and
+* 50 observations for reporting the final expected prediction performance.
+
+```{r datasetSplitting}
+trainingIndices <- sample(1:499, 299)
+validationIndices <- sample((1:499)[-trainingIndices], 150)
+testIndices <- (1:499)[c(-trainingIndices, -validationIndices)]
+
+trainingSet <- houseprices[trainingIndices,]
+validationSet <- houseprices[validationIndices,]
+testSet <- houseprices[testIndices,]
+```
+
+Finally, say about Ridge and Lasso. #TODOOOO
+
 
 ## Fitting the full model
 In section \ref{EDA}, we discussed about the different available variables in our data and we explored numerically and graphically the relationships between them and especially with _"price"_. Based on our findings, we select the full additive model as our full model to start with:
 
 $$ price_i =  \beta_0 + \beta_1\cdot{\mathbb{I}bath2_i} + \beta_2\cdot{\mathbb{I}bath3_i} + \beta_3\cdot{\mathbb{I}bath4_i}$$
 $$\beta_4\cdot{\mathbb{I}parkingNoParking_i} + \beta_5\cdot{\mathbb{I}parkingNotProvided_i} + \beta_6\cdot{\mathbb{I}parkingOpen_i} + $$
-$$\beta_7\cdot{sqft_i} + \beta_8\cdot{precip_i} + \beta_9\cdot{elev_i} + \beta_{10}\cdot{dist1_i} + \beta_{11}\cdot{dist2_i} + \beta_{12}\cdot{dist3_i} + \epsilon_i$$
+$$\beta_7\cdot{sqft_i} + \beta_8\cdot{precip_i} + \beta_9\cdot{elevation_i} + \beta_{10}\cdot{dist\_am1_i} + \beta_{11}\cdot{dist\_am2_i} + \beta_{12}\cdot{dist\_am3_i} + \epsilon_i$$
 $$,\epsilon_i\sim N(0, \sigma^2)$$
-, where the indicator variables are equal to $1$ when the $i^{th}$ observation's corresponding variable takes the related value and $0$ otherwise. (**Baseline categories**: bath=1, parking="Covered")
+, where the indicator variables(starting with $\mathbb{I}$) are equal to $1$ when the $i^{th}$ observation's corresponding categorical variable takes the relevant value and $0$ otherwise (**Baseline categories**: bath = 1, parking = "Covered").
+
 
 ```{r}
-fullModel <- lm(price ~ ., data = houseprices)
+fullModel <- lm(price ~ ., data = trainingSet)
 get_regression_table(fullModel) %>%
   select(term, estimate, p_value, lower_ci, upper_ci) %>%
-  kable(caption = "\\label{tab:FullModelFit} The estimated regression coefficients along with the corresponding p-values and the Confidence Intervals from fitting the full additive model.")
+  kable(caption = "\\label{tab:FullModelFit} The estimated regression coefficients along with the corresponding p-values and the Confidence Intervals from fitting the full additive model on the training set.")
 ```
+
+Validation error: `r sum( (validationSet$price - predict(fullModel, validationSet))^2 )/nrow(validationSet)`
 
 ## Variable Selection
 
