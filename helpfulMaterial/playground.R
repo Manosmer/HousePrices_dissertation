@@ -150,3 +150,7 @@ hist(houseprices$price[houseprices$bath == 4], breaks = 8)
 
 
 length(unique(houseprices)[[1]])
+
+
+test <- lm(price ~ . -bathBinary  -parkingBinary, houseprices)
+summary(test)
