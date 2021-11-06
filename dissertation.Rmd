@@ -24,6 +24,7 @@ library(knitr)
 
 library(skimr)
 library(tidyverse)
+library(moderndive)
 library(GGally)
 library(corrplot)
 ```
@@ -33,6 +34,7 @@ library(corrplot)
 \newpage
 
 # Introduction {#Intro}
+
 
 ## The real estate market and the importance of predictive and descriptive models
 
@@ -222,10 +224,10 @@ numericalVariables %>%
 \newpage
 
 ## Exploring relationships
-The primary objective of this paper is to create the most accurate predictive model about _"price"_ using the rest of the available variables in the data. Therefore, it is of interest to explore the relationships of _"price"_ against each one of the rest of the numerical variables. For this purpose, we first explore the relationships of _"price"_ against all other numerical variables and, then, we focus on the categorical variables. Finally, we analyse the relationships of _"price"_ against the numerical variables, while considering the different levels of the categorical variables.
+The primary objective of this paper is to create the most accurate predictive model about _"price"_ using the rest of the available variables in the data. Therefore, it is of interest to explore the relationships of _"price"_ against the other variables. For this purpose, we first explore the relationships of _"price"_ against all other numerical variables and, then, we focus on the categorical variables. Finally, we analyse the relationships of _"price"_ against the numerical variables on different levels of the categorical variables.
 
 
-### Numerical
+### Numerical explanatory variables
 
 Figure \ref{fig:scatterPriceAll} depicts the relationships of _"price"_ against all the rest numerical variables in the form of scatterplots with a simple linear regression line superimposed. From the scatterplots, we observe a random scattering of the data points across all values with no obvious patterns suggesting that there is little association between _"price"_ and any one of the other numerical variables. Additionally, the small slope of the superimposed regression lines along with the little correlation revealed in table \ref{tab:corrplot} show that there is no linear relationship between any of the numerical variables and _"price"_. However, we observe a high correlation between _"dist_am3"_/_"dist_am1"_ and a moderate correlation between _"dist_am1"_/_"dist_am2"_ and _"dist_am2"_/_"dist_am3"_ indicating that there is possibly multicollinearity between the distance variables.
 
@@ -269,7 +271,7 @@ corrplot::corrplot(cor(houseprices %>% select(-bath, -parking)), method="number"
 ```
 
 
-### Categorical
+### Categorical explanatory variables
 
 Figure \ref{fig:boxplotsCat} depicts the sample distribution of _"price"_ for each level of _"bath"_ or _"parking"_. Regarding _"parking"_, we observe quite a significant overlap between the boxplots with small differences between them suggesting that there is little to no difference in the sale price for houses in different _"parking"_ categories. In contrast, we see that there is no overlap between the boxplots of _"price"_ in different _"bath"_ categories with the sale price actually increasing as the number of bathrooms increases. As it can be seen more clearly in figure \ref{fig:histPricebyBath}, the seemingly normally-distributed sample of _"price"_ is completely partitioned based on _"bath"_ into 4 non-overlapping chunks. These findings indicate strongly that the categorical variable _"bath"_ is a significant predictor with a positive relationship with _"price"_.
 
@@ -294,7 +296,9 @@ ggplot(data=houseprices, mapping = aes(x=price, fill=bath)) +
 
 ### Interactions
 
-Finally, it is important to investigate any interactions between categorical and numerical explanatory variables. Figure \ref{fig:scatterPriceAllByBath} shows the relationship of each numerical variable with _"price"_, on each _"bath"_ level. On all plots, we observe four distinct layers of data corresponding to each _"bath"_ level. As we have already explained, these layers represent the full partitioning of the sample distribution of _"price"_ into four non-overlapping chunks when considering the variable _"bath"_. It is apparent that there are observations across the whole range of values on all numerical explanatory variables on each different _"bath"_ level and that the nature of the relationship between those and _"price"_ stays the same regardless of the level of _"bath"_. This indicates that there is no interaction between _"bath"_ and any of the numerical variables and that the additive model is probably appropriate in this case. The same can be proven about the categorical variable _"parking"_ as well.
+Finally, it is important to investigate any interactions between categorical and numerical explanatory variables. Figure \ref{fig:scatterPriceAllByBath} shows the relationship of each numerical variable with _"price"_, on each _"bath"_ level. On all plots, we observe four distinct layers of data corresponding to each _"bath"_ level. As we have already explained, these layers represent the full partitioning of the sample distribution of _"price"_ into four non-overlapping chunks when considering the variable _"bath"_. It is apparent that the observations in the data extend across the whole range of values on all numerical explanatory variables on every different _"bath"_ level and that the nature of the relationship between those variabes and _"price"_ stays almost the same regardless of the level of _"bath"_. This indicates that there is no interaction between _"bath"_ and any of the numerical variables and that the additive model is probably appropriate in this case. Furthermore, the relationships with _"price"_ do not seem to improve for any of the numerical variables when we take _"bath"_ into consideration.
+
+Similarly for the categorical variable _"parking"_, it can be shown that there is an almost complete overlap between the layers of data of the different _"parking"_ levels. This suggests that the single regression line model should be suitable for each relationship with _"price"_, with no differences in the slopes or the intercept terms among the categories.
 
 
 ```{r, fig.align='center', out.width="0.49\\linewidth", fig.show='hold', fig.width=4, fig.height=3, fig.cap="\\label{fig:scatterPriceAllByBath} Scatterplots of 'price' against all the rest numerical variables and a simple linear regression line superimposed, coloured by 'bath'."}
@@ -365,12 +369,71 @@ houseprices %>%
 
 
 # Model Fitting: Selecting the best possible regression model {#ModelFitting}
+
+The **primary objective** of this paper is to search for and design the best possible _predictive_ regression model to accurately predict the sale price of a house based on the rest of its attributes. The main approach we chose for this problem is **variable selection on the full model via backward elimination**. 
+
+For this purpose, we decided on assessing our models' performance and conduct variable selection based on the validation (mean squared)prediction error:
+
+$$ \hat{MSPE} = \frac{1}{n} \sum_{i=1}^n{(y_i - \hat{y_i})^2}$$
+
+We achieve this by splitting our original data set into three subsets; training, validation and test set. These sets will be used for training(fitting) the models, assessing their prediction performance(out-of-sample prediction) and calculating the expected prediction performance on the best model, respectively. The split we chose to use is:
+
+* 299 observations for training, 
+* 150 observations for assessment and
+* 50 observations for reporting the final expected prediction performance.
+
+```{r datasetSplitting}
+set.seed(1635863590)
+trainingIndices <- sample(1:499, 299)
+validationIndices <- sample((1:499)[-trainingIndices], 150)
+testIndices <- (1:499)[c(-trainingIndices, -validationIndices)]
+
+trainingSet <- houseprices[trainingIndices,]
+validationSet <- houseprices[validationIndices,]
+testSet <- houseprices[testIndices,]
+```
+
+
+Finally, we will consider moving beyond linear models by smoothing the best regression model we found using Ridge regression on its subset of predictors and see whether we can improve the prediction performance even further. Also, we will investigate whether variable selection via Lasso regression yields a more powerful model than backward elimination.
+
+
+## Fitting the full model
+In section \ref{EDA}, we discussed about the different available variables in our data and we explored numerically and graphically the relationships between them and especially with _"price"_. Based on our findings, we select the full additive model as our full model to start with:
+
+$$ price_i =  \beta_0 + \beta_1\cdot{\mathbb{I}bath2_i} + \beta_2\cdot{\mathbb{I}bath3_i} + \beta_3\cdot{\mathbb{I}bath4_i}$$
+$$\beta_4\cdot{\mathbb{I}parkingNoParking_i} + \beta_5\cdot{\mathbb{I}parkingNotProvided_i} + \beta_6\cdot{\mathbb{I}parkingOpen_i} + $$
+$$\beta_7\cdot{sqft_i} + \beta_8\cdot{precip_i} + \beta_9\cdot{elevation_i} + \beta_{10}\cdot{dist\_am1_i} + \beta_{11}\cdot{dist\_am2_i} + \beta_{12}\cdot{dist\_am3_i} + \epsilon_i$$
+$$,\epsilon_i\sim N(0, \sigma^2)$$
+, where the indicator variables(starting with $\mathbb{I}$) are equal to $1$ when the $i^{th}$ observation's corresponding categorical variable takes the relevant value and $0$ otherwise. The baseline categories are _1_ for _"bath"_ and _Covered_ for _"parking"_.
+
+
+Table \ref{tab:FullModelFit} shows the OLS estimates of the full model's regression coefficients along with their p-value and 95% Confidence Interval(C.I.), when fitted on the training set. The reported p-values suggest that the coefficients for the categories of _"bath"_ are significant, considering all predictors we used in the model and choosing a significance level of 5%. Furthermore, the absence of overlap between the 95% C.Is of the  _"bath"_ categories further underlines the importance of this predictor. Also, we observe a small p-value for the categories "No Parking" and "Open" of the variable _"parking"_. All the rest estimates have a p-value that is greater than the chosen significance level or, equivalently, a 95% C.I. that includes the value of $0$ as a plausible value for the coefficient in the population's regression model. 
+
+```{r}
+fullModel <- lm(price ~ ., data = trainingSet)
+get_regression_table(fullModel) %>%
+  select(term, estimate, p_value, lower_ci, upper_ci) %>%
+  kable(caption = "\\label{tab:FullModelFit} The estimated regression coefficients along with the corresponding p-values and 95% Confidence Intervals from fitting the full additive model on the training set.")
+```
+
+The most important thing to note from fitting the full model is the mean squared prediction error on the validation set, which is equal to $\hat{MSPE}=$ `r sum( (validationSet$price - predict(fullModel, validationSet))^2 )/nrow(validationSet)`. This metric will be used for variable selection as described in the following subsection.
+
+
+
+## Variable Selection
+
+
+
+## Regularised regression with Ridge and Lasso
+
+
 ~~ TODO ~~
 
 # Conclusions
 ~~ TODO ~~
 
 # Further Work
+go beyond regression models, k-NN maybe. 
 ~~ TODO ~~
 
 # References

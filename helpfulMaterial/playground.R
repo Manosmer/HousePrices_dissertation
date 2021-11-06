@@ -1,5 +1,72 @@
+library(tidyverse)
+library(ggridges)
+
 houseprices <- read.csv("~/Desktop/Glasgow Project/housing.csv")
 str(houseprices)
+
+# bath and parking is factor
+houseprices$bath <- factor(houseprices$bath)
+houseprices$parking <- as.factor(houseprices$parking)
+
+# extreme outlier removal
+houseprices <- houseprices[-348,]
+
+
+# test: Parking Binary for dist_am1 dist_am3
+houseprices$parkingBinary <- as.character(houseprices$parking)
+houseprices$parkingBinary[houseprices$parkingBinary != "No Parking"] <- "Some Parking"
+houseprices$parkingBinary <- as.factor(houseprices$parkingBinary)
+levels(houseprices$parkingBinary)
+
+# test: bath 1 or more binary for precip
+houseprices$bathBinary <- as.character(houseprices$bath)
+houseprices$bathBinary[houseprices$bathBinary != "1"] <- "More than 1"
+houseprices$bathBinary <- as.factor(houseprices$bathBinary)
+levels(houseprices$bathBinary)
+
+
+houseprices %>%
+  ggplot(mapping = aes(x = dist_am2, y = price, colour = parkingBinary, fill = bathBinary)) + 
+  geom_point(size = 2, alpha=.6, shape = 1) + 
+  geom_smooth(method = "lm", se = FALSE, lwd=.7)
+
+cor(houseprices$price[houseprices$parking == "No Parking"],
+    houseprices$dist_am3[houseprices$parking == "No Parking"])
+
+
+mdddd <- lm(price ~ bath + parking, data = houseprices)
+summary(mdddd)
+
+crazymodel <- lm(price ~ bath + parking + (dist_am2:parkingBinary):bathBinary, data=houseprices)
+summary(crazymodel)
+step(crazymodel, direction = "backward")
+
+
+md <- lm(price ~ bath, data = houseprices)
+summary(md)
+plot(md)
+
+houseprices %>%
+  ggplot(mapping = aes(x = dist_am2, y = price, colour = bathBinary, fill = parkingBinary )) + 
+  geom_point(size = 2, alpha=.6, shape = 1) + 
+  geom_smooth(method = "lm", se = FALSE, lwd=.7)
+
+cor(houseprices$price[houseprices$parking == "Open" & houseprices$bath == "1"],
+    houseprices$sqft[houseprices$parking == "Open" & houseprices$bath == "1"])
+
+
+houseprices[houseprices$parking == "No Parking",] %>%
+  ggplot(mapping = aes(x = dist_am3, y = price)) + 
+  geom_point(size = 2, alpha=.6, shape = 1) + 
+  geom_smooth(method = "lm", se = FALSE, lwd=.7)
+
+
+
+cor(houseprices$precip[houseprices$bath == 1], houseprices$price[houseprices$bath == 1])
+
+
+
+
 
 houseprices %>%
   select(-bath, -parking, -price) %>%
@@ -10,17 +77,13 @@ houseprices %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 
-# bath and parking is factor
-houseprices$bath <- factor(houseprices$bath)
-houseprices$parking <- as.factor(houseprices$parking)
 
-# extreme outlier removal
-houseprices <- houseprices[-348,]
+
+ggplot(houseprices, aes(y = price, fill = bath, colour = parking)) +
+  geom_boxplot()
 
 # histogram of price coloured by bath category
-library(tidyverse)
-library(ggridges)
-ggplot(data=houseprices, mapping = aes(x=sqft, fill=bath)) +
+ggplot(data=houseprices, mapping = aes(x=price, fill=bath)) +
   geom_histogram(bins=100)
 
 
@@ -87,3 +150,7 @@ hist(houseprices$price[houseprices$bath == 4], breaks = 8)
 
 
 length(unique(houseprices)[[1]])
+
+
+test <- lm(price ~ . -bathBinary  -parkingBinary, houseprices)
+summary(test)
