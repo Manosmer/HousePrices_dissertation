@@ -416,11 +416,13 @@ get_regression_table(fullModel) %>%
   kable(caption = "\\label{tab:FullModelFit} The estimated regression coefficients along with the corresponding p-values and 95% Confidence Intervals from fitting the full additive model on the training set.")
 ```
 
-However, the most important thing to note here is the mean squared prediction error on the validation set, which is equal to $\hat{MSPE}=$ `r sum( (validationSet$price - predict(fullModel, validationSet))^2 )/nrow(validationSet)`. This metric will be used for variable selection as described in the following subsection.
+The most important thing to note from fitting the full model is the mean squared prediction error on the validation set, which is equal to $\hat{MSPE}=$ `r sum( (validationSet$price - predict(fullModel, validationSet))^2 )/nrow(validationSet)`. This metric will be used for variable selection as described in the following subsection.
 
 
 
 ## Variable Selection
+
+
 
 ## Regularised regression with Ridge and Lasso
 
