@@ -84,9 +84,10 @@ summary(md1)
 step(md, direction = "backward")
 
 
+fullModel <- lm(price ~ bath + parking + precip*bathBinary1 - bathBinary1 + dist_am1*parkingBinaryCNotPr - parkingBinaryCNotPr + dist_am2 + dist_am3 + sqft + elevation, data = trainingSet)
 
 ### MSPE ###
-sum( (validationSet$price - predict(md, validationSet))^2 )/nrow(validationSet)
+sum( (validationSet$price - predict(fullModel, validationSet))^2 )/nrow(validationSet)
 
 
 ### MAPE ###
@@ -97,7 +98,7 @@ sum( abs( validationSet$price - predict(md, validationSet) ) )/nrow(validationSe
 
 ### models that are better than price ~ bath + parking ###
 #1 - BEST
-md <- lm(price ~ bath + precip:bathBinary1, data = trainingSet)
+md <- lm(price ~ bath + precip*bathBinary1 - bathBinary1, data = trainingSet)
 summary(md)
 
 # PROOF of preci:Bath
@@ -114,7 +115,7 @@ houseprices[houseprices$bath == "1",] %>%
 
 
 #2
-md <- lm(price ~ bath + precip:bathBinary1 + dist_am1:parkingBinaryCNotPr, data = trainingSet)
+md <- lm(price ~ bath + precip*bathBinary1 - bathBinary1 + dist_am1*parkingBinaryCNotPr - parkingBinaryCNotPr, data = trainingSet)
 # PROOF
 houseprices %>%
   ggplot( mapping = aes( y = price, x = dist_am1, colour = parking) ) + 
