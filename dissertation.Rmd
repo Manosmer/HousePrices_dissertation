@@ -296,9 +296,13 @@ ggplot(data=houseprices, mapping = aes(x=price, fill=bath)) +
 
 ### Interactions
 
-Finally, it is important to investigate any interactions between categorical and numerical explanatory variables. Figure \ref{fig:scatterPriceAllByBath} shows the relationship of each numerical variable with _"price"_, on each _"bath"_ level. On all plots, we observe four distinct layers of data corresponding to each _"bath"_ level. As we have already explained, these layers represent the full partitioning of the sample distribution of _"price"_ into four non-overlapping chunks when considering the variable _"bath"_. It is apparent that the observations in the data extend across the whole range of values on all numerical explanatory variables on every different _"bath"_ level and that the nature of the relationship between those variabes and _"price"_ stays almost the same regardless of the level of _"bath"_. This indicates that there is no interaction between _"bath"_ and any of the numerical variables and that the additive model is probably appropriate in this case. Furthermore, the relationships with _"price"_ do not seem to improve for any of the numerical variables when we take _"bath"_ into consideration.
+Finally, it is important to investigate any interactions between categorical and numerical explanatory variables. Figure \ref{fig:scatterPriceAllByBath} shows the relationship of each numerical variable with _"price"_, on each _"bath"_ level, in the form of scatterplots with simple regression lines superimposed. On all plots, we observe four distinct layers of data corresponding to each _"bath"_ level. As we have already explained, these layers correspond to the full partitioning of the sample distribution of _"price"_ into four non-overlapping chunks when considering the variable _"bath"_. It is apparent that, regardless of the _"bath"_ category they belong to, the observations in the data extend fairly across the whole range of values on all numerical explanatory variables. 
 
-Similarly for the categorical variable _"parking"_, it can be shown that there is an almost complete overlap between the layers of data of the different _"parking"_ levels. This suggests that the single regression line model should be suitable for each relationship with _"price"_, with no differences in the slopes or the intercept terms among the categories.
+Excluding _"precip"_, the nature of the relationship between the rest of the explanatory variables and _"price"_ is roughly the same on each level of _"bath"_ and the relationships do not seem to improve for any of the variables when we take _"bath"_ into consideration. In the case of the relationship between _"precip"_ and _"price"_, we observe a slightly positive trend on all levels except for the houses with one bathroom, where the relationship becomes negative. In order to explore that interaction even further, we isolate the level "1" of _"bath"_ by introducing a new categorical variable called _"bathBinary1"_ which takes the value "More than 1" in the case of observations with 2 or more bathrooms and the value "1" in the case of just one bathroom. 
+
+When we assess the same relationships under each category of _"parking"_, it can be shown that there is an almost complete overlap between the layers of data of the different _"parking"_ levels, with a random scattering of the data points. This suggests that the single regression line model should be suitable for each relationship with _"price"_, with no difference in the slopes or the intercept terms among the categories (i.e. no interaction with _"parking"_). However, it appears that in the relationship of _"price"_ and _"dist\_am1"_ (left plot in figure \ref{fig:distAm1}) there is a difference in the slope of the simple linear regression lines between the _"parking"_ categories, except for the slopes in the categories "Covered" and "Not Provided" where they are roughly equal. Therefore, to study the possible interaction of _"dist\_am1"_ and _"parking"_, we introduce a new categorical variable called _"parkingCNoP"_, which merges the categories "Covered" and "Not Provided" into a single category (right plot in figure \ref{fig:distAm1}). 
+
+Finally, we note that other transformations we applied on the numerical explanatory variables and on _"price"_ did not seem to improve the relationships between them.
 
 
 ```{r, fig.align='center', out.width="0.49\\linewidth", fig.show='hold', fig.width=4, fig.height=3, fig.cap="\\label{fig:scatterPriceAllByBath} Scatterplots of 'price' against all the rest numerical variables and a simple linear regression line superimposed, coloured by 'bath'."}
@@ -334,38 +338,32 @@ houseprices %>%
 ```
 
 
-```{r, fig.align='center', fig.cap="\\label{fig:scatterPriceAllByParking} Parking.", eval=FALSE}
-houseprices %>%
-  ggplot(mapping = aes(x = dist_am1, y = price, colour=parking)) + 
-  geom_point(size = 0.8, alpha=1, shape = 1) +
-  geom_smooth(method = "lm", se = FALSE, lwd=.7)
+```{r makeNewCategoricals}
+# bathBinary1
+houseprices$bathBinary1 <- as.character(houseprices$bath)
+houseprices$bathBinary1[houseprices$bathBinary1 != "1"] <- "More than 1"
+houseprices$bathBinary1 <- as.factor(houseprices$bathBinary1)
 
-houseprices %>%
-  ggplot(mapping = aes(x = dist_am2, y = price, colour=parking)) + 
-  geom_point(size = 0.8, alpha=.4, shape = 1) +
-  geom_smooth(method = "lm", se = FALSE, lwd=.7)
 
-houseprices %>%
-  ggplot(mapping = aes(x = dist_am3, y = price, colour=parking)) + 
-  geom_point(size = 0.8, alpha=.4, shape = 1) +
-  geom_smooth(method = "lm", se = FALSE, lwd=.7)
-
-houseprices %>%
-  ggplot(mapping = aes(x = elevation, y = price, colour=parking)) + 
-  geom_point(size = 0.8, alpha=.4, shape = 1) +
-  geom_smooth(method = "lm", se = FALSE, lwd=.7)
-
-houseprices %>%
-  ggplot(mapping = aes(x = precip, y = price, colour=parking)) + 
-  geom_point(size = 0.8, alpha=.4, shape = 1) +
-  geom_smooth(method = "lm", se = FALSE, lwd=.7)
-
-houseprices %>%
-  ggplot(mapping = aes(x = sqft, y = price, colour=parking)) + 
-  geom_point(size = 0.8, alpha=.4, shape = 1) +
-  geom_smooth(method = "lm", se = FALSE, lwd=.7)
+# Parking: Covered or Not Provided
+houseprices$parkingCNoP <- as.character(houseprices$parking)
+houseprices$parkingCNoP[houseprices$parkingCNoP == "Covered" | houseprices$parkingCNoP == "Not Provided"] <- "Covered or Not Provided"
+houseprices$parkingCNoP <- as.factor(houseprices$parkingCNoP)
 ```
-  
+
+
+```{r, fig.align='center', fig.show='hold', out.width="0.49\\linewidth", fig.width=4, fig.height=3, fig.cap="\\label{fig:distAm1} 'Price' against 'dist\\_am1' on all 'parking' levels and on the levels of 'parkingCNoP'."}
+houseprices %>%
+  ggplot( mapping = aes( y = price, x = dist_am1, colour = parking) ) + 
+  geom_point(shape = 1, size = 0.8) + 
+  geom_smooth(method = "lm", se = FALSE, lwd = .7)
+
+houseprices %>%
+  ggplot( mapping = aes( y = price, x = dist_am1, colour = parkingCNoP) ) + 
+  geom_point(shape = 1, size = 0.8) + 
+  geom_smooth(method = "lm", se = FALSE, lwd = .7)
+```
+
 
 
 # Model Fitting: Selecting the best possible regression model {#ModelFitting}
@@ -398,19 +396,23 @@ Finally, we will consider moving beyond linear models by smoothing the best regr
 
 
 ## Fitting the full model
-In section \ref{EDA}, we discussed about the different available variables in our data and we explored numerically and graphically the relationships between them and especially with _"price"_. Based on our findings, we select the full additive model as our full model to start with:
+In section \ref{EDA}, we discussed about the different available variables in our data and we explored numerically and graphically the relationships between them and especially with _"price"_. Based on our findings, we select as our starting model the full additive model with the original variables, including interactions between _"precip"_ - _"bathBinary1"_ and _"dist\_am1"_ - _"parkingCNoP"_:
 
-$$ price_i =  \beta_0 + \beta_1\cdot{\mathbb{I}bath2_i} + \beta_2\cdot{\mathbb{I}bath3_i} + \beta_3\cdot{\mathbb{I}bath4_i}$$
-$$\beta_4\cdot{\mathbb{I}parkingNoParking_i} + \beta_5\cdot{\mathbb{I}parkingNotProvided_i} + \beta_6\cdot{\mathbb{I}parkingOpen_i} + $$
-$$\beta_7\cdot{sqft_i} + \beta_8\cdot{precip_i} + \beta_9\cdot{elevation_i} + \beta_{10}\cdot{dist\_am1_i} + \beta_{11}\cdot{dist\_am2_i} + \beta_{12}\cdot{dist\_am3_i} + \epsilon_i$$
-$$,\epsilon_i\sim N(0, \sigma^2)$$
-, where the indicator variables(starting with $\mathbb{I}$) are equal to $1$ when the $i^{th}$ observation's corresponding categorical variable takes the relevant value and $0$ otherwise. The baseline categories are _1_ for _"bath"_ and _Covered_ for _"parking"_.
+$$ price_i =  \beta_0 + \beta_1\cdot{\mathbb{I}bath|2_i} + \beta_2\cdot{\mathbb{I}bath|3_i} + \beta_3\cdot{\mathbb{I}bath|4_i} +$$
+$$\beta_4\cdot{\mathbb{I}parking|NoParking_i} + \beta_5\cdot{\mathbb{I}parking|NotProvided_i} + \beta_6\cdot{\mathbb{I}parking|Open_i} +$$
+$$\beta_7\cdot{sqft_i} + \beta_8\cdot{elevation_i} + \beta_{9}\cdot{dist\_am2_i} + \beta_{10}\cdot{dist\_am3_i} +$$
+$$\beta_{11}\cdot{precip_i} + \beta_{12}\cdot{\mathbb{I}bathBinary1|Morethan1_i}\cdot{precip_i} +$$
+$$\beta_{13}\cdot{dist\_am1_i} + \beta_{14}\cdot{\mathbb{I}parkingCNoP|NoParking_i}\cdot{dist\_am1_i} + \beta_{15}\cdot{\mathbb{I}parkingCNoP|Open_i}\cdot{dist\_am1_i}$$
+$$+~\epsilon_i,~~~~\epsilon_i\sim N(0, \sigma^2), ~~~ i=1,...,299$$
+
+, where the indicator variables(starting with $\mathbb{I}$) are equal to $1$ when the $i^{th}$ observation's corresponding categorical variable takes the relevant value(separated from the variable name with "|") and $0$ otherwise. The baseline categories are **1** for _"bath"_ and _"bathBinary1"_, **Covered** for _"parking"_ and **Covered or Not Provided** for _"parkingCNoP"_.
 
 
-Table \ref{tab:FullModelFit} shows the OLS estimates of the full model's regression coefficients along with their p-value and 95% Confidence Interval(C.I.), when fitted on the training set. The reported p-values suggest that the coefficients for the categories of _"bath"_ are significant, considering all predictors we used in the model and choosing a significance level of 5%. Furthermore, the absence of overlap between the 95% C.Is of the  _"bath"_ categories further underlines the importance of this predictor. Also, we observe a small p-value for the categories "No Parking" and "Open" of the variable _"parking"_. All the rest estimates have a p-value that is greater than the chosen significance level or, equivalently, a 95% C.I. that includes the value of $0$ as a plausible value for the coefficient in the population's regression model. 
+Table \ref{tab:FullModelFit} shows the OLS estimates of the full model's regression coefficients along with their p-value and 95% Confidence Interval(C.I.), when fitted on the training set. The reported p-values suggest that the coefficients for the categories of _"bath"_ are significant, considering all the predictors we used in the model and choosing a significance level of 5%. Furthermore, the absence of overlap between the 95% C.Is of the  _"bath"_ categories further underlines the importance of this predictor. Also, we observe a p-value close to the 5% threshold for the difference in the coefficient of _"precip"_ when considering houses with more than 1 bathrooms compared to the baseline caategory. All the rest estimates have a p-value that is greater than the chosen significance level or, equivalently, they have a 95% C.I. that includes the value of $0$ as a plausible value for the coefficient in the population's regression model. 
 
 ```{r}
-fullModel <- lm(price ~ ., data = trainingSet)
+fullModel <- lm(price ~ bath + parking + precip*bathBinary1 - bathBinary1 + dist_am1*parkingCNoP - parkingCNoP + dist_am2 + dist_am3 + sqft + elevation, data = trainingSet)
+
 get_regression_table(fullModel) %>%
   select(term, estimate, p_value, lower_ci, upper_ci) %>%
   kable(caption = "\\label{tab:FullModelFit} The estimated regression coefficients along with the corresponding p-values and 95% Confidence Intervals from fitting the full additive model on the training set.")
@@ -421,13 +423,12 @@ Lastly, we can calculate the mean squared prediction error of the full model fro
 
 
 ## Variable Selection
-
-
-
-## Regularised regression with Ridge and Lasso
-
-
 ~~ TODO ~~
+
+
+## Regularised regression using Ridge and Lasso
+~~ TODO ~~
+
 
 # Conclusions
 ~~ TODO ~~
