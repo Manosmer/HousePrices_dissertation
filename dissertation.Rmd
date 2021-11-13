@@ -416,13 +416,89 @@ fullModel <- lm(price ~ bath + parking + precip*bathBinary1 - bathBinary1 + dist
 get_regression_table(fullModel) %>%
   select(term, estimate, p_value, lower_ci, upper_ci) %>%
   kable(caption = "\\label{tab:FullModelFit} The estimated regression coefficients along with the corresponding p-values and 95% Confidence Intervals from fitting the full additive model on the training set.")
+
+
+calculateMSPE <- function(model, dataset, responseVar) {
+  return(sum( (dataset[[responseVar]] - predict(model, dataset))^2 )/nrow(dataset))
+}
 ```
 
-Lastly, we can calculate the mean squared prediction error of the full model from predicting on the validation set, which is equal to $\hat{MSPE}=$ `r sum( (validationSet$price - predict(fullModel, validationSet))^2 )/nrow(validationSet)`. This metric will be used for performing variable selection as described in the following subsection.
+Lastly, we can calculate the mean squared prediction error of the full model from predicting on the validation set, which is equal to $\hat{MSPE}=$ `r calculateMSPE(fullModel, validationSet, "price")`. This metric will be used for performing variable selection as described in the following subsection.
 
 
 
 ## Variable Selection
+
+```{r variableSelectionFunctions}
+
+joinVariables <- function(variableVector) {
+  if(length(variableVector) <= 0) return();
+  
+  result <- variableVector[1]
+  for(i in 2:(length(variableVector)-1) ) {
+    result <- paste(result, variableVector[i], sep=" + ")
+  }
+  
+  return( paste(result, variableVector[length(variableVector)], sep=" + ") )
+}
+
+selectVariables <- function(variableVector, trainSet, validSet, responseVar) {
+  removedVariables <- c() # contains removed variables in order
+  MSPEs <- c() # contains MSPE values in order
+  
+  
+  fullModel <- lm( paste(responseVar, joinVariables( variableVector ), sep=" ~ "), data=trainSet)
+  
+  # remove each variable at a time and calculate MSPE
+  minMSPE <- calculateMSPE(fullModel, validSet, responseVar)
+  removedVar <- 0
+  bestFound <- FALSE
+  while(!bestFound & length(variableVector) > 0) {
+    bestFound <- TRUE # assume the best model is the one found from the previous iteration
+    
+    for(i in seq_along( variableVector )) {
+      model <- lm( paste(responseVar, joinVariables( variableVector[-i] ), sep=" ~ "), data=trainSet)
+      currentMSPE <- calculateMSPE(model, validSet, responseVar)
+      
+      if(minMSPE > currentMSPE) {
+        bestFound <- FALSE # if something better has been found, best model has not been found yet
+        minMSPE <- currentMSPE
+        removedVar <- i
+      }
+    }
+    
+    if(!bestFound) {
+      # some variable has indeed been removed
+      removedVariables <- c(removedVariables, variableVector[removedVar])
+      MSPEs <- c(MSPEs, minMSPE)
+      variableVector <- variableVector[-removedVar]
+    }
+  }
+  
+  return(list(removedVariables = removedVariables, MSPEs = MSPEs, bestModel = variableVector))
+}
+```
+
+
+Although the full model is a good starting point to consider all predictors that could be possibly related to the response variable, it is almost certain that we have included excessive, unnecessary complexity. Usually, such a model is very flexible, lacks stability (high variance) and captures sample specific features that are not generalisable to other data from the same population. In other  words, these kinds of models excel in estimating on their training data set, but fail to demonstrate a good performance in out-of-sample prediction. 
+
+Since our goal is to construct the best predictive model, we wish to minimise the $\hat{MSPE}$ on the validation data set as much as possible and the method we chose to achieve this is **variable selection via backward elimination on the full model**. This iterative method starts by removing one variable at a time from the full model and calculating the $\hat{MSPE}$ after each removal, until it has removed all variables once. Then, the method identifies the variable that resulted in the best(lowest) $\hat{MSPE}$ value after its removal and updates the model such that it does not contain this variable any longer. The method continues by seeking the next best variable to remove on the updated model. This process is repeated until either there is only one independent variable left or no more improvement can be achieved. 
+
+In simple words, we decrease the overall complexity of our model by gradually removing unnecessary variables, while we continuously monitor the improvement of the $\hat{MSPE}$, until we reach the best possible value. It is easy to realise that this method belongs to the family of greedy algorithms as it consists of a series of consecutive, independent and non-reversible steps at which the optimal solution is chosen each time.
+
+
+```{r variableSelection}
+model_variables <- c("bath", "parking", "precip*bathBinary1 - bathBinary1", "dist_am1*parkingCNoP - parkingCNoP", "dist_am2", "dist_am3", "sqft", "elevation")
+
+selectedModel <- selectVariables(model_variables, trainingSet, validationSet, "price")
+
+selectionTable <- c("full model", calculateMSPE(fullModel, validationSet, "price"))
+selectionTable <- rbind(selectionTable, cbind(selectedModel$removedVariables, selectedModel$MSPEs))
+
+data.frame("removedVars"=selectionTable[,1], "MSPE"=selectionTable[,2]) %>%
+  kable(col.names = c("Removed variable", "MSPE after removal"),
+        caption="\\label{tab:variableSelection} Results from performing variable selection with backward elimination on the full model. The left column contains the variables that have been removed from the full model in the order of removal, while the right one shows the $\\hat{MSPE}$ on the validation set after the removal of the variable on the left. The table contains the full model with its $\\hat{MSPE}$ in the first row for reference.")
+```
 ~~ TODO ~~
 
 
@@ -434,7 +510,7 @@ Lastly, we can calculate the mean squared prediction error of the full model fro
 ~~ TODO ~~
 
 # Further Work
-go beyond regression models, k-NN maybe. 
+go beyond regression models, k-NN(but first, feature scaling) maybe. 
 ~~ TODO ~~
 
 # References

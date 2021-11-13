@@ -154,3 +154,26 @@ length(unique(houseprices)[[1]])
 
 test <- lm(price ~ . -bathBinary  -parkingBinary, houseprices)
 summary(test)
+
+
+
+model_variables <- c("bath", "parking", "precip*bathBinary1 - bathBinary1", "dist_am1*parkingCNoP - parkingCNoP", "dist_am2", "dist_am3", "sqft", "elevation")
+
+joinVariables <- function(variableVector) {
+  if(length(variableVector) <= 0) return();
+  
+  result <- variableVector[1]
+  for(i in 2:(length(variableVector)-1) ) {
+    result <- paste(result, variableVector[i], sep=" + ")
+  }
+  
+  return( paste(result, variableVector[length(variableVector)], sep=" + ") )
+}
+joinVariables(model_variables)
+
+calculateMSPE <- function(model, dataset, responseVar) {
+  return(sum( (dataset[[responseVar]] - predict(model, dataset))^2 )/nrow(dataset))
+}
+
+
+calculateMSPE()
