@@ -2,6 +2,7 @@
 
 library(tidyverse)
 library(ggridges)
+library(moderndive)
 
 houseprices <- read.csv("~/Desktop/Glasgow Project/housing.csv")
 str(houseprices)
@@ -11,7 +12,7 @@ houseprices$bath <- factor(houseprices$bath)
 houseprices$parking <- as.factor(houseprices$parking)
 
 # extreme outlier removal
-houseprices <- houseprices[-348,]
+houseprices <- houseprices[c(-32,-348, -370, -491),]
 
 
 
@@ -54,9 +55,9 @@ levels(houseprices$bathBinary4)
 
 
 set.seed(1635863590)
-trainingIndices <- sample(1:499, 299)
-validationIndices <- sample((1:499)[-trainingIndices], 150)
-testIndices <- (1:499)[c(-trainingIndices, -validationIndices)]
+trainingIndices <- sample(1:496, 299)
+validationIndices <- sample((1:496)[-trainingIndices], 150)
+testIndices <- (1:496)[c(-trainingIndices, -validationIndices)]
 
 trainingSet <- houseprices[trainingIndices,]
 validationSet <- houseprices[validationIndices,]
@@ -138,29 +139,8 @@ model_variables <- c("bath", "parking", "precip*bathBinary1 - bathBinary1", "dis
 
 fullModel <- lm( paste("price", joinVariables( model_variables), sep=" ~ "), data=trainingSet)
 
-minMSPE <- calculateMSPE(fullModel, validationSet, "price")
-removedVar <- 0
-bestFound <- FALSE
-while(!bestFound) {
-  bestFound <- TRUE
-  
-  for(i in seq_along(model_variables)) {
-    model <- lm( paste("price", joinVariables( model_variables[-i]), sep=" ~ "), data=trainingSet)
-    currentMSPE <- calculateMSPE(model, validationSet, "price")
-    
-    if(minMSPE > currentMSPE) {
-      bestFound <- FALSE
-      minMSPE <- currentMSPE
-      removedVar <- i
-    }
-  }
-  
-  if(!bestFound) {
-    model_variables <- model_variables[-removedVar]
-  }
-}
 
-selectVariables <- function(variableVector, trainSet, validSet, responseVar) {
+selectVariablesBoth <- function(variableVector, trainSet, validSet, responseVar) {
   removedVariables <- c()
   MSPEs <- c()
   
@@ -169,11 +149,14 @@ selectVariables <- function(variableVector, trainSet, validSet, responseVar) {
   
   minMSPE <- calculateMSPE(fullModel, validSet, responseVar)
   removedVar <- 0
+  addedVar <- 0
   bestFound <- FALSE
   # remove each variable at a time and calculate MSPE
   while(!bestFound & length(variableVector) > 0) {
     bestFound <- TRUE
+    decisionRemove <- FALSE
     
+    # REMOVE
     for(i in seq_along(variableVector)) {
       model <- lm( paste(responseVar, joinVariables( variableVector[-i] ), sep=" ~ "), data=trainSet)
       currentMSPE <- calculateMSPE(model, validSet, responseVar)
@@ -182,20 +165,40 @@ selectVariables <- function(variableVector, trainSet, validSet, responseVar) {
         bestFound <- FALSE
         minMSPE <- currentMSPE
         removedVar <- i
+        decisionRemove <- TRUE
+      }
+    }
+    
+    # ADD
+    for(i in seq_along(removedVariables)) {
+      model <- lm( paste(responseVar, joinVariables( c(variableVector, removedVariables[i]) ), sep=" ~ "), data=trainSet)
+      currentMSPE <- calculateMSPE(model, validSet, responseVar)
+      
+      if(minMSPE > currentMSPE) {
+        bestFound <- FALSE
+        minMSPE <- currentMSPE
+        addedVar <- i
+        decisionRemove <- FALSE
       }
     }
     
     if(!bestFound) {
-      removedVariables <- c(removedVariables, variableVector[removedVar])
-      MSPEs <- c(MSPEs, minMSPE)
-      variableVector <- variableVector[-removedVar]
+      if(decisionRemove) {
+        removedVariables <- c(removedVariables, variableVector[removedVar])
+        MSPEs <- c(MSPEs, minMSPE)
+        variableVector <- variableVector[-removedVar]
+      } else {
+        variableVector <- c(variableVector, removedVariables[addedVar])
+        MSPEs <- c(MSPEs, minMSPE)
+        removedVariables <- removedVariables[-addedVar]
+      }
     }
   }
   
   return(list(removedVariables = removedVariables, MSPEs = MSPEs, bestModel = variableVector))
 }
 
-selectVariables(model_variables, trainingSet, validationSet, "price")
+selectVariablesBoth(model_variables, trainingSet, validationSet, "price")
 
 model_variables
 model <- lm( paste("price", joinVariables(model_variables), sep=" ~ "), data=trainingSet)
