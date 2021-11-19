@@ -1,6 +1,6 @@
 library(tidyverse)
-library(ggridges)
 
+myseed <- 1635863582
 houseprices <- read.csv("~/Desktop/Glasgow Project/housing.csv")
 str(houseprices)
 
@@ -9,148 +9,177 @@ houseprices$bath <- factor(houseprices$bath)
 houseprices$parking <- as.factor(houseprices$parking)
 
 # extreme outlier removal
-houseprices <- houseprices[-348,]
+houseprices <- houseprices[c(-348),]
 
 
-# test: Parking Binary for dist_am1 dist_am3
-houseprices$parkingBinary <- as.character(houseprices$parking)
-houseprices$parkingBinary[houseprices$parkingBinary != "No Parking"] <- "Some Parking"
-houseprices$parkingBinary <- as.factor(houseprices$parkingBinary)
-levels(houseprices$parkingBinary)
+houseprices$logp <- log(houseprices$price)
+houseprices$sqrtp <- sqrt(houseprices$price)
 
-# test: bath 1 or more binary for precip
-houseprices$bathBinary <- as.character(houseprices$bath)
-houseprices$bathBinary[houseprices$bathBinary != "1"] <- "More than 1"
-houseprices$bathBinary <- as.factor(houseprices$bathBinary)
-levels(houseprices$bathBinary)
+set.seed(myseed)
+trainingIndices <- sample(1:499, 299)
+validationIndices <- sample((1:499)[-trainingIndices], 150)
+testIndices <- (1:499)[c(-trainingIndices, -validationIndices)]
 
-
-houseprices %>%
-  ggplot(mapping = aes(x = dist_am2, y = price, colour = parkingBinary, fill = bathBinary)) + 
-  geom_point(size = 2, alpha=.6, shape = 1) + 
-  geom_smooth(method = "lm", se = FALSE, lwd=.7)
-
-cor(houseprices$price[houseprices$parking == "No Parking"],
-    houseprices$dist_am3[houseprices$parking == "No Parking"])
+trainingSet <- houseprices[trainingIndices,]
+validationSet <- houseprices[validationIndices,]
+testSet <- houseprices[testIndices,]
 
 
-mdddd <- lm(price ~ bath + parking, data = houseprices)
-summary(mdddd)
-
-crazymodel <- lm(price ~ bath + parking + (dist_am2:parkingBinary):bathBinary, data=houseprices)
-summary(crazymodel)
-step(crazymodel, direction = "backward")
-
-
-md <- lm(price ~ bath, data = houseprices)
-summary(md)
-plot(md)
-
-houseprices %>%
-  ggplot(mapping = aes(x = dist_am2, y = price, colour = bathBinary, fill = parkingBinary )) + 
-  geom_point(size = 2, alpha=.6, shape = 1) + 
-  geom_smooth(method = "lm", se = FALSE, lwd=.7)
-
-cor(houseprices$price[houseprices$parking == "Open" & houseprices$bath == "1"],
-    houseprices$sqft[houseprices$parking == "Open" & houseprices$bath == "1"])
-
-
-houseprices[houseprices$parking == "No Parking",] %>%
-  ggplot(mapping = aes(x = dist_am3, y = price)) + 
-  geom_point(size = 2, alpha=.6, shape = 1) + 
-  geom_smooth(method = "lm", se = FALSE, lwd=.7)
+### TEST::: CROSS-VALIDATION ###
+calculateMSPECV <- function(variableVector, dataset, responseVar, splits) {
+  # Calculation of average MSPE via K-fold cross-validation
+  
+  dataSetLength <- nrow(dataset)
+  k <- length(splits)
+  if(k <= 1) stop("Data set splits must be more than 1.")
+  
+  MSPEs <- numeric(k)
+  for(i in 1:k) {
+    validSet <- dataset[splits[[i]], ]
+    trainSet <- dataset[ (1:dataSetLength)[ -splits[[i]] ], ]
+    
+    model <- lm( paste(responseVar, joinVariables( variableVector ), sep=" ~ "), data=trainSet)
+    MSPEs[i] <- calculateMSPE(model, validSet, responseVar) 
+  }
+  
+  print(sum(MSPEs)/k)
+  return(sum(MSPEs) / k)
+}
 
 
+selectVariablesCV <- function(variableVector, trainSet, responseVar, splits) {
+  # Variable Selection via backward elimination using K-fold CV to calculate the MSPE
+  
+  if(length(splits) <= 1) stop("The number of splits in Cross-validation must be greater than 1.")
+  
+  ### RESULTS ###
+  removedVariables <- c() # contains removed variables in order
+  MSPEs <- c() # contains MSPE values in order
+  
+  
+  ### Full model average MSPE ###
+  minMSPE <- calculateMSPECV(variableVector, trainSet, responseVar, splits)
+  
+  # remove each variable one at a time and calculate MSPE
+  removedVar <- 0
+  bestFound <- FALSE
+  while(!bestFound & length(variableVector) > 1) {
+    bestFound <- TRUE # assume the best model is the one found from the previous iteration
+    
+    for(i in seq_along( variableVector )) {
+      currentMSPE <- calculateMSPECV(variableVector[-i], trainSet, responseVar, splits)
+      
+      if(minMSPE >= currentMSPE) {
+        bestFound <- FALSE # if something better has been found, best model has not been found yet
+        minMSPE <- currentMSPE
+        removedVar <- i
+      }
+    }
+    
+    if(!bestFound) {
+      # some variable has indeed been removed
+      removedVariables <- c(removedVariables, variableVector[removedVar])
+      MSPEs <- c(MSPEs, minMSPE)
+      variableVector <- variableVector[-removedVar]
+    }
+  }
+  
+  return(list(removedVariables = removedVariables, MSPEs = MSPEs, bestModel = variableVector))
+}
 
-cor(houseprices$precip[houseprices$bath == 1], houseprices$price[houseprices$bath == 1])
+teIndices <- sample(1:499, 50)
+trIndices <- (1:499)[-teIndices]
+
+teSet <- houseprices[teIndices,]
+trSet <- houseprices[trIndices,]
+
+
+set.seed(myseed)
+k <- 10
+trainSetLength <- length(trSet[[1]])
+splitSize <- floor( (trainSetLength / k) + .5)
+
+splits <- list()
+splits[[1]] <- sample(1:trainSetLength, splitSize)
+usedIndices <- splits[[1]]
+for(i in 2:(k-1)) {
+  splits[[i]] <- sample( ( 1:trainSetLength )[-usedIndices], splitSize )
+  
+  usedIndices <- c(usedIndices, splits[[i]])
+}
+splits[[k]] <- (1:trainSetLength)[-usedIndices]
+
+
+selectVariablesCV(model_variables, trSet, "price", splits)
+
+### TEST::: CROSS-VALIDATION ###
 
 
 
 
+# without log: mention dist_am3 and probably parking
+model <- lm(logp ~ dist_am3, data=houseprices)
+summary(model)
 
-houseprices %>%
-  select(-bath, -parking, -price) %>%
-  gather(key="varname", value = "value") %>%
-  ggplot(mapping = aes(x = varname, y = value)) +
-  geom_boxplot() +
-  xlab("Numerical Variables") + ylab("Values") + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+model <- lm(logp ~ precip*bath + dist_am1*parking + sqft+ dist_am3, data = houseprices)
+summary(model)
+
+fullModel <- lm( paste("logp", joinVariables( model_variables ), sep=" ~ "), data=trainingSet)
+selectVariables(model_variables, trainingSet, validationSet, "price")
+ggplot(mapping=aes(x=model$residuals)) + 
+  geom_histogram(bins = 40)
 
 
 
-
-ggplot(houseprices, aes(y = price, fill = bath, colour = parking)) +
+ggplot(data=houseprices, mapping = aes(y=log(price), fill=bath)) +
   geom_boxplot()
 
-# histogram of price coloured by bath category
-ggplot(data=houseprices, mapping = aes(x=price, fill=bath)) +
-  geom_histogram(bins=100)
+ggplot(data=houseprices, mapping = aes(x=log(price), fill=bath)) +
+  geom_histogram(bins = 100)
 
 
 
-#model fitting
-md <- lm(price ~ ., data = houseprices)
+model_variables <- c("bath", "parking", "precip*bath", "dist_am1*parking", "dist_am2", "dist_am3", "sqft", "elevation")
 
-library(moderndive)
-gpoints <- get_regression_points(md)
-colnames(gpoints)
-gpoints <- data.frame(residual=md$residuals, fitted=md$fitted.values, bath=houseprices$bath, parking = houseprices$parking)
-ggplot(gpoints, aes(x = fitted, y = residual)) +
-  geom_point() +
-  labs(x = "age", y = "Residual") +
-  geom_hline(yintercept = 0, col = "blue", size = 1) +
-  facet_wrap(~ bath+parking)
+joinVariables <- function(variableVector) {
+  if(length(variableVector) <= 0) stop("Variable vector must contain one or more elements.");
+  
+  if(length(variableVector) == 1) return(variableVector[1])
+  
+  result <- variableVector[1]
+  for(var in variableVector[c(-1,-length(variableVector))] ) {
+    result <- paste(result, var, sep=" + ")
+  }
+  
+  return( paste(result, variableVector[length(variableVector)], sep=" + ") )
+}
+joinVariables(model_variables)
 
-hist(resid(md))
-plot(density(resid(md)))
-
-plot(md)
-qqnorm(resid(md))
-summary(md)
-
-
-plot(houseprices$parking, houseprices$price)
-step(md, direction = "backward", trace=TRUE ) 
+calculateMSPE <- function(model, dataset, responseVar) {
+  return(sum( (dataset[[responseVar]] - predict(model, dataset))^2 )/nrow(dataset))
+}
 
 
-plot(as.factor(houseprices$sqft), md$fitted.values)
-AIC(md)
-BIC(md)
+model_variables <- c("bath", "parking", "precip*bath", "dist_am1*parking", "dist_am2", "dist_am3", "sqft", "elevation*bath")
+
+fullModel <- lm( paste("log(price)", joinVariables( model_variables), sep=" ~ "), data=houseprices)
+plot(fullModel)
+summary(fullModel)
+
+selectVariables(model_variables, trainingSet, validationSet, "price")
+
+model <- lm(log(price) ~ dist_am1*parking, data=houseprices)
+summary(model)
+
+cor(houseprices$price[houseprices$bath=="1"], houseprices$elevation[houseprices$bath=="1"])
 
 
+plot(y=log(houseprices$price), houseprices$dist_am2)
+plot(y=(houseprices$price), houseprices$dist_am3)
 
+houseprices %>%
+  ggplot(mapping = aes(y = log(price), x = precip)) +
+  geom_point(size = 1.5, shape = 1) +
+  geom_smooth(method = "lm", se = FALSE)
 
-tt <- lm(Petal.Length ~ Species, data = iris)
-plot(tt)
-
-
-plot(houseprices$sqft, houseprices$price)
-plot(houseprices$dist_am1,resid(md))
-
-
-
-boxplot(houseprices$bath, houseprices$price)
-
-train_ind <- sample(1:499, 499*0.8)
-trainset <- houseprices[train_ind,]
-validset <- houseprices[(1:499)[-train_ind],]
-
-md <- lm(price ~ bath + log(sqft) , data = trainset)
-plot(log(trainset$sqft),trainset$price)
-ggplot(mapping = aes(x= trainset$precip, y= trainset$price, col=trainset$bath)) +
-  geom_point() +
-  geom_smooth(se = FALSE, method="lm")
-plot(md)
-validerr <- mean(abs(predict(md, validset) - validset$price))
-validerr
-
-
-sum(resid(md)^2)
-hist(houseprices$price[houseprices$bath == 4], breaks = 8)
-
-
-length(unique(houseprices)[[1]])
-
-
-test <- lm(price ~ . -bathBinary  -parkingBinary, houseprices)
-summary(test)
+fullModel

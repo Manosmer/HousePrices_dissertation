@@ -221,7 +221,6 @@ numericalVariables %>%
 
 ```
 
-\newpage
 
 ## Exploring relationships
 The primary objective of this paper is to create the most accurate predictive model about _"price"_ using the rest of the available variables in the data. Therefore, it is of interest to explore the relationships of _"price"_ against the other variables. For this purpose, we first explore the relationships of _"price"_ against all other numerical variables and, then, we focus on the categorical variables. Finally, we analyse the relationships of _"price"_ against the numerical variables on different levels of the categorical variables.
@@ -298,9 +297,19 @@ ggplot(data=houseprices, mapping = aes(x=price, fill=bath)) +
 
 Finally, it is important to investigate any interactions between categorical and numerical explanatory variables. Figure \ref{fig:scatterPriceAllByBath} shows the relationship of each numerical variable with _"price"_, on each _"bath"_ level, in the form of scatterplots with simple regression lines superimposed. On all plots, we observe four distinct layers of data corresponding to each _"bath"_ level. As we have already explained, these layers correspond to the full partitioning of the sample distribution of _"price"_ into four non-overlapping chunks when considering the variable _"bath"_. It is apparent that, regardless of the _"bath"_ category they belong to, the observations in the data extend fairly across the whole range of values on all numerical explanatory variables. 
 
-Excluding _"precip"_, the nature of the relationship between the rest of the explanatory variables and _"price"_ is roughly the same on each level of _"bath"_ and the relationships do not seem to improve for any of the variables when we take _"bath"_ into consideration. In the case of the relationship between _"precip"_ and _"price"_, we observe a slightly positive trend on all levels except for the houses with one bathroom, where the relationship becomes negative. In order to explore that interaction even further, we isolate the level "1" of _"bath"_ by introducing a new categorical variable called _"bathBinary1"_ which takes the value "More than 1" in the case of observations with 2 or more bathrooms and the value "1" in the case of just one bathroom. 
+Excluding _"precip"_, the nature of the relationship between the rest of the explanatory variables and _"price"_ is roughly the same on each level of _"bath"_ and the relationships do not seem to improve for any of the variables when we take _"bath"_ into consideration (as seen from the scatterplots and the high p-values). In the case of the relationship between _"precip"_ and _"price"_, we observe a slightly positive trend on all levels except for the houses with one bathroom, where the relationship becomes negative. Therefore, the aforementioned relationship seems to improve and become important when considered under each _"bath"_ category. This fact is further supported by the p-values shown in table \ref{tab:precipBathFit} which are either close to the chosen 5% significance level or below it.
 
-When we assess the same relationships under each category of _"parking"_, it can be shown that there is an almost complete overlap between the layers of data of the different _"parking"_ levels, with a random scattering of the data points. This suggests that the single regression line model should be suitable for each relationship with _"price"_, with no difference in the slopes or the intercept terms among the categories (i.e. no interaction with _"parking"_). However, it appears that in the relationship of _"price"_ and _"dist\_am1"_ (left plot in figure \ref{fig:distAm1}) there is a difference in the slope of the simple linear regression lines between the _"parking"_ categories, except for the slopes in the categories "Covered" and "Not Provided" where they are roughly equal. Therefore, to study the possible interaction of _"dist\_am1"_ and _"parking"_, we introduce a new categorical variable called _"parkingCNoP"_, which merges the categories "Covered" and "Not Provided" into a single category (right plot in figure \ref{fig:distAm1}). 
+```{r}
+get_regression_table(lm(price ~ precip*bath, data=houseprices)) %>%
+  select(term, estimate, p_value, lower_ci, upper_ci) %>%
+  kable(caption="\\label{tab:precipBathFit} The regression coefficient estimates, p_values and 95% C.Is from fitting the linear model with just an interaction between 'precip' and 'bath'.")
+```
+
+
+When we assess the same relationships under each category of _"parking"_, it can be shown that there is an almost complete overlap between the layers of data of the different _"parking"_ levels, with a random scattering of the data points and the p-values on those relationships are fairly large. This suggests that the single regression line model should be suitable for each relationship with _"price"_, with no difference in the slopes or the intercept terms among the categories (i.e. no interaction with _"parking"_). 
+
+However, it appears that in the relationship of _"price"_ and _"dist\_am1"_ there is a significant difference in the slope of the simple linear regression lines among the _"parking"_ categories "Covered" and "No Parking" and a significantly large p-value for the slopes in the categories "Covered" and "Not Provided". This can be seen from both the figure \ref{fig:distAm1} and the table \ref{tab:distam1ParkingFit}. Therefore, it is important to study formally the possible interaction of _"dist\_am1"_ and _"parking"_. 
+
 
 Finally, we note that other transformations we applied on the numerical explanatory variables and on _"price"_ did not seem to improve the relationships between them.
 
@@ -338,30 +347,18 @@ houseprices %>%
 ```
 
 
-```{r makeNewCategoricals}
-# bathBinary1
-houseprices$bathBinary1 <- as.character(houseprices$bath)
-houseprices$bathBinary1[houseprices$bathBinary1 != "1"] <- "More than 1"
-houseprices$bathBinary1 <- as.factor(houseprices$bathBinary1)
 
-
-# Parking: Covered or Not Provided
-houseprices$parkingCNoP <- as.character(houseprices$parking)
-houseprices$parkingCNoP[houseprices$parkingCNoP == "Covered" | houseprices$parkingCNoP == "Not Provided"] <- "Covered or Not Provided"
-houseprices$parkingCNoP <- as.factor(houseprices$parkingCNoP)
-```
-
-
-```{r, fig.align='center', fig.show='hold', out.width="0.49\\linewidth", fig.width=4, fig.height=3, fig.cap="\\label{fig:distAm1} 'Price' against 'dist\\_am1' on all 'parking' levels and on the levels of 'parkingCNoP'."}
+```{r, fig.align='center', fig.show='hold', out.width="0.49\\linewidth", fig.width=4, fig.height=3, fig.cap="\\label{fig:distAm1} 'Price' against 'dist\\_am1' on all 'parking' levels."}
 houseprices %>%
   ggplot( mapping = aes( y = price, x = dist_am1, colour = parking) ) + 
   geom_point(shape = 1, size = 0.8) + 
   geom_smooth(method = "lm", se = FALSE, lwd = .7)
+```
 
-houseprices %>%
-  ggplot( mapping = aes( y = price, x = dist_am1, colour = parkingCNoP) ) + 
-  geom_point(shape = 1, size = 0.8) + 
-  geom_smooth(method = "lm", se = FALSE, lwd = .7)
+```{r}
+get_regression_table(lm(price ~ dist_am1*parking, data=houseprices)) %>%
+  select(term, estimate, p_value, lower_ci, upper_ci) %>%
+  kable(caption="\\label{tab:distam1ParkingFit} The regression coefficient estimates, p_values and 95% C.Is from fitting the linear model with just an interaction between 'dist\\_am1' and 'parking'.")
 ```
 
 
@@ -370,63 +367,283 @@ houseprices %>%
 
 The **primary objective** of this paper is to search for and design the best possible _predictive_ regression model to accurately predict the sale price of a house based on the rest of its attributes. The main approach we chose for this problem is **variable selection on the full model via backward elimination**. 
 
-For this purpose, we decided on assessing our models' performance and conduct variable selection based on the validation (mean squared)prediction error:
+For this purpose, we decided on assessing our models' performance and conduct variable selection based on the average **Mean Squared (Prediction) Error** calculated using 5-fold cross-validation(C.V.) on the training data:
 
 $$ \hat{MSPE} = \frac{1}{n} \sum_{i=1}^n{(y_i - \hat{y_i})^2}$$
 
-We achieve this by splitting our original data set into three subsets; training, validation and test set. These sets will be used for training(fitting) the models, assessing their prediction performance(out-of-sample prediction) and calculating the expected prediction performance on the best model, respectively. The split we chose to use is:
+We achieve this by splitting our original data set into two subsets; training and test. The training set will be used for training and assessing the prediction performance(out-of-sample prediction) via 5-fold C.V. and the test set for calculating the expected prediction performance on the best model. The split we chose to use is:
 
-* 299 observations for training, 
-* 150 observations for assessment and
-* 50 observations for reporting the final expected prediction performance.
+* 450 observations for training and C.V., 
+* 49 observations for assessment
+
+The reason for choosing cross-validation instead of a simple training/validation/test split is to avoid the case of a bad split, especially with a small data set as ours. With K-fold C.V. we are able to use all of our data and calculate a more robust estimate of the average (expected) prediction error [book ESLII]. In practice, we have used both techniques and we have experienced more consistent results from variable selection via cross-validation (even with 5, 6 or 10 folds) than via the simple 3-subset split; small changes on the training set resulted in almost the same final subset of predictors. Also, the choice of the number of folds to use is of great importance as it balances the bias-variance trade-off. However, a usual choice for that number is 5 or 10 folds [Breiman and Spector or Kohavi], which is the choice we made in this paper.
 
 ```{r datasetSplitting}
-set.seed(1635863590)
-trainingIndices <- sample(1:499, 299)
-validationIndices <- sample((1:499)[-trainingIndices], 150)
-testIndices <- (1:499)[c(-trainingIndices, -validationIndices)]
+set.seed(1635863590) # set a fixed seed so we get the same results each time we knit
 
-trainingSet <- houseprices[trainingIndices,]
-validationSet <- houseprices[validationIndices,]
+#trainingIndices <- sample(1:499, 299)
+#validationIndices <- sample((1:499)[-trainingIndices], 150)
+#testIndices <- (1:499)[c(-trainingIndices, -validationIndices)]
+
+#trainingSet <- houseprices[trainingIndices,]
+#validationSet <- houseprices[validationIndices,]
+#testSet <- houseprices[testIndices,]
+
+testIndices <- sample(1:499, 49)
+trainingIndices <- (1:499)[-testIndices]
+
 testSet <- houseprices[testIndices,]
+trainingSet <- houseprices[trainingIndices,]
+
+# trainingSet <- trainingSet[!(rownames(trainingSet)=="32" | rownames(trainingSet)=="438"),]
+# 5-fold split for 5-fold cross-validation
+k <- 5
+trainSetLength <- nrow(trainingSet)
+splitSize <- floor( (trainSetLength / k) + .5)
+
+splits <- list()
+splits[[1]] <- sample(1:trainSetLength, splitSize)
+usedIndices <- splits[[1]]
+for(i in 2:(k-1)) {
+  splits[[i]] <- sample( ( 1:trainSetLength )[-usedIndices], splitSize )
+  
+  usedIndices <- c(usedIndices, splits[[i]])
+}
+splits[[k]] <- (1:trainSetLength)[-usedIndices]
+
 ```
 
 
-Finally, we will consider moving beyond linear models by smoothing the best regression model we found using Ridge regression on its subset of predictors and see whether we can improve the prediction performance even further. Also, we will investigate whether variable selection via Lasso regression yields a more powerful model than backward elimination.
+Finally, we will consider moving beyond linear models by smoothing the best regression model's least squares estimates using Ridge regression on its subset of predictors and see whether we can improve the prediction performance even further. Also, we will investigate whether variable selection via Lasso regression yields a more powerful model than backward elimination.
 
 
 ## Fitting the full model
-In section \ref{EDA}, we discussed about the different available variables in our data and we explored numerically and graphically the relationships between them and especially with _"price"_. Based on our findings, we select as our starting model the full additive model with the original variables, including interactions between _"precip"_ - _"bathBinary1"_ and _"dist\_am1"_ - _"parkingCNoP"_:
+In section \ref{EDA}, we discussed about the different available variables in our data and we explored numerically and graphically the relationships between them and especially with _"price"_. Based on our findings, we select as our starting model the linear, additive model on the original variables, including interactions between _"precip"_ - _"bath"_ and _"dist\_am1"_ - _"parking"_. Therefore, we assume the true relationship is:
 
 $$ price_i =  \beta_0 + \beta_1\cdot{\mathbb{I}bath|2_i} + \beta_2\cdot{\mathbb{I}bath|3_i} + \beta_3\cdot{\mathbb{I}bath|4_i} +$$
 $$\beta_4\cdot{\mathbb{I}parking|NoParking_i} + \beta_5\cdot{\mathbb{I}parking|NotProvided_i} + \beta_6\cdot{\mathbb{I}parking|Open_i} +$$
 $$\beta_7\cdot{sqft_i} + \beta_8\cdot{elevation_i} + \beta_{9}\cdot{dist\_am2_i} + \beta_{10}\cdot{dist\_am3_i} +$$
-$$\beta_{11}\cdot{precip_i} + \beta_{12}\cdot{\mathbb{I}bathBinary1|Morethan1_i}\cdot{precip_i} +$$
-$$\beta_{13}\cdot{dist\_am1_i} + \beta_{14}\cdot{\mathbb{I}parkingCNoP|NoParking_i}\cdot{dist\_am1_i} + \beta_{15}\cdot{\mathbb{I}parkingCNoP|Open_i}\cdot{dist\_am1_i}$$
-$$+~\epsilon_i,~~~~\epsilon_i\sim N(0, \sigma^2), ~~~ i=1,...,299$$
+$$\beta_{11}\cdot{precip_i} + \beta_{12}\cdot{\mathbb{I}bath|2_i}\cdot{precip_i} + \beta_{13}\cdot{\mathbb{I}bath|3_i}\cdot{precip_i} + \beta_{14}\cdot{\mathbb{I}bath|4_i}\cdot{precip_i} +$$
+$$\beta_{15}\cdot{dist\_am1_i} + \beta_{16}\cdot{\mathbb{I}parking|NoParking_i}\cdot{dist\_am1_i} + \beta_{17}\cdot{\mathbb{I}parking|NotProvided_i}\cdot{dist\_am1_i} +$$
+$$\beta_{18}\cdot{\mathbb{I}parking|Open_i}\cdot{dist\_am1_i}$$
+$$+~\epsilon_i,~~~~\epsilon_i \stackrel{indep.}\sim N(0, \sigma^2), ~~~ i=1,...,450$$
 
-, where the indicator variables(starting with $\mathbb{I}$) are equal to $1$ when the $i^{th}$ observation's corresponding categorical variable takes the relevant value(separated from the variable name with "|") and $0$ otherwise. The baseline categories are **1** for _"bath"_ and _"bathBinary1"_, **Covered** for _"parking"_ and **Covered or Not Provided** for _"parkingCNoP"_.
+, where the indicator variables(starting with $\mathbb{I}$) are equal to $1$ when the $i^{th}$ observation's corresponding categorical variable takes the relevant value(separated from the variable name with "|") and $0$ otherwise. The baseline categories are **1** for _"bath"_ and **Covered** for _"parking"_.
 
 
-Table \ref{tab:FullModelFit} shows the OLS estimates of the full model's regression coefficients along with their p-value and 95% Confidence Interval(C.I.), when fitted on the training set. The reported p-values suggest that the coefficients for the categories of _"bath"_ are significant, considering all the predictors we used in the model and choosing a significance level of 5%. Furthermore, the absence of overlap between the 95% C.Is of the  _"bath"_ categories further underlines the importance of this predictor. Also, we observe a p-value close to the 5% threshold for the difference in the coefficient of _"precip"_ when considering houses with more than 1 bathrooms compared to the baseline caategory. All the rest estimates have a p-value that is greater than the chosen significance level or, equivalently, they have a 95% C.I. that includes the value of $0$ as a plausible value for the coefficient in the population's regression model. 
+Table \ref{tab:FullModelFit} shows the OLS estimates of the full model's regression coefficients along with their p-value and 95% Confidence Interval(C.I.), when fitted on the whole training set. The reported p-values suggest that we have enough statistical evidence that the coefficients for the categories of _"bath"_ are significant, when considering all the predictors we used in the model and choosing a significance level of 5%. Furthermore, the absence of overlap between the 95% C.Is of the  _"bath"_ categories further underlines the importance of this predictor. 
+
+Additionally, almost all of the reported p-values related to the interaction between _"precip"_ and _"bath"_ are either below or close to the chosen 5% threshold, suggesting that this interaction seems important for predicting _"price"_, considering all the other predictors we used in the model. All the rest estimates have a p-value that is greater than the chosen significance level or, equivalently, they have a 95% C.I. that includes the value of $0$ as a plausible value for the coefficient in the population's regression model.
 
 ```{r}
-fullModel <- lm(price ~ bath + parking + precip*bathBinary1 - bathBinary1 + dist_am1*parkingCNoP - parkingCNoP + dist_am2 + dist_am3 + sqft + elevation, data = trainingSet)
+joinVariables <- function(variableVector) {
+  if(length(variableVector) <= 0) stop("Variable vector must contain one or more elements.");
+  
+  if(length(variableVector) == 1) return(variableVector[1])
+  
+  result <- variableVector[1]
+  for(var in variableVector[c(-1,-length(variableVector))] ) {
+    result <- paste(result, var, sep=" + ")
+  }
+  
+  return( paste(result, variableVector[length(variableVector)], sep=" + ") )
+}
+
+calculateMSPE <- function(model, dataset, responseVar) {
+  # calculate MSPE on validation set
+  return( sum( (dataset[[responseVar]] - predict(model, dataset))^2 )/nrow(dataset) )
+}
+
+calculateMSPECV <- function(variableVector, dataset, responseVar, splits) {
+  # Calculation of average MSPE via K-fold cross-validation
+  
+  dataSetLength <- nrow(dataset)
+  k <- length(splits)
+  if(k <= 1) stop("Data set splits must be more than 1.")
+  
+  MSPEs <- numeric(k)
+  for(i in 1:k) {
+    validSet <- dataset[splits[[i]], ]
+    trainSet <- dataset[ (1:dataSetLength)[ -splits[[i]] ], ]
+    
+    model <- lm( paste(responseVar, joinVariables( variableVector ), sep=" ~ "), data=trainSet)
+    MSPEs[i] <- calculateMSPE(model, validSet, responseVar) 
+  }
+  
+  return(sum(MSPEs) / k)
+}
+```
+
+
+```{r}
+model_variables <- c("bath", "parking", "precip*bath", "dist_am1*parking", "dist_am2", "dist_am3", "sqft", "elevation")
+
+fullModel <- lm( paste("price", joinVariables( model_variables ), sep=" ~ "), data=trainingSet)
+
+TSS <- sum( (trainingSet$price - mean(trainingSet$price))^2 )
+full_model_RSS <- sum( (trainingSet$price - fullModel$fitted.values)^2 )
 
 get_regression_table(fullModel) %>%
   select(term, estimate, p_value, lower_ci, upper_ci) %>%
-  kable(caption = "\\label{tab:FullModelFit} The estimated regression coefficients along with the corresponding p-values and 95% Confidence Intervals from fitting the full additive model on the training set.")
+  kable(caption = "\\label{tab:FullModelFit} The estimated regression coefficients along with the corresponding p-values and 95% Confidence Intervals from fitting the full model on the training set.")
+
+fullModelAverageMSPE <- calculateMSPECV(model_variables, trainingSet, "price", splits)
 ```
 
-Lastly, we can calculate the mean squared prediction error of the full model from predicting on the validation set, which is equal to $\hat{MSPE}=$ `r sum( (validationSet$price - predict(fullModel, validationSet))^2 )/nrow(validationSet)`. This metric will be used for performing variable selection as described in the following subsection.
+Lastly, we can calculate the average Mean Squared Prediction Error of the full model via 5-fold cross-validation, which is equal to $\hat{MSPE}=$ `r fullModelAverageMSPE`. This metric will be used for performing variable selection as described in the following subsection.
 
 
 
 ## Variable Selection
-~~ TODO ~~
+
+```{r variableSelectionFunctions}
+selectVariables <- function(variableVector, trainSet, validSet, responseVar) {
+  removedVariables <- c() # contains removed variables in order
+  MSPEs <- c() # contains MSPE values in order
+  
+  
+  fullModel <- lm( paste(responseVar, joinVariables( variableVector ), sep=" ~ "), data=trainSet)
+  
+  # remove each variable at a time and calculate MSPE
+  minMSPE <- calculateMSPE(fullModel, validSet, responseVar)
+  removedVar <- 0
+  bestFound <- FALSE
+  while(!bestFound & length(variableVector) > 1) {
+    bestFound <- TRUE # assume the best model is the one found from the previous iteration
+    
+    for(i in seq_along( variableVector )) {
+      model <- lm( paste(responseVar, joinVariables( variableVector[-i] ), sep=" ~ "), data=trainSet)
+      currentMSPE <- calculateMSPE(model, validSet, responseVar)
+      
+      if(minMSPE >= currentMSPE) {
+        bestFound <- FALSE # if something better has been found, best model has not been found yet
+        minMSPE <- currentMSPE
+        removedVar <- i
+      }
+    }
+    
+    if(!bestFound) {
+      # some variable has indeed been removed
+      removedVariables <- c(removedVariables, variableVector[removedVar])
+      MSPEs <- c(MSPEs, minMSPE)
+      variableVector <- variableVector[-removedVar]
+    }
+  }
+  
+  return(list(removedVariables = removedVariables, MSPEs = MSPEs, bestModel = variableVector))
+}
 
 
-## Regularised regression using Ridge and Lasso
+## Cross-validation ##
+selectVariablesCV <- function(variableVector, trainSet, responseVar, splits) {
+  # Variable Selection via backward elimination using K-fold CV to calculate the MSPE
+  
+  if(length(splits) <= 1) stop("The number of splits in Cross-validation must be greater than 1.")
+  
+  ### RESULTS ###
+  removedVariables <- c() # contains removed variables in order
+  MSPEs <- c() # contains MSPE values in order
+  
+  
+  ### Full model average MSPE ###
+  minMSPE <- calculateMSPECV(variableVector, trainSet, responseVar, splits)
+  
+  # remove each variable one at a time and calculate MSPE
+  removedVar <- 0
+  bestFound <- FALSE
+  while(!bestFound & length(variableVector) > 1) {
+    bestFound <- TRUE # assume the best model is the one found from the previous iteration
+    
+    for(i in seq_along( variableVector )) {
+      currentMSPE <- calculateMSPECV(variableVector[-i], trainSet, responseVar, splits)
+      
+      if(minMSPE >= currentMSPE) {
+        bestFound <- FALSE # if something better has been found, best model has not been found yet
+        minMSPE <- currentMSPE
+        removedVar <- i
+      }
+    }
+    
+    if(!bestFound) {
+      # some variable has indeed been removed
+      removedVariables <- c(removedVariables, variableVector[removedVar])
+      MSPEs <- c(MSPEs, minMSPE)
+      variableVector <- variableVector[-removedVar]
+    }
+  }
+  
+  return(list(removedVariables = removedVariables, MSPEs = MSPEs, bestModel = variableVector))
+}
+
+```
+
+
+Although the full model is a good starting point to consider all predictors that could be possibly related to the response variable, it is almost certain that we have included excessive, unnecessary complexity that leads to overfitting. Usually, such a model is very flexible, lacks stability (high variance) and captures sample-specific features that are not generalisable to other data from the same population (noise). In other words, this kind of models excel in estimating on their training data set, but fail to demonstrate a good performance in out-of-sample prediction. 
+
+Since our goal is to construct the best predictive model, we wish to minimise the average $\hat{MSPE}$ we obtain from cross-validation as much as possible and the method we chose to achieve this is **variable selection via backward elimination on the full model**. This iterative method starts by removing one variable at a time from the full model and calculating the average $\hat{MSPE}$ after each removal by performing 5-fold C.V. on the training set, until it has removed each variable once. Then, the method identifies the variable that resulted in the best(lowest) $\hat{MSPE}$ value after its removal and updates the model such that it does not contain this variable any longer. The method continues by seeking the next best variable to remove on the updated model. This process is repeated until either there is only one independent variable left or no more improvement can be achieved. 
+
+In simple words, we decrease the overall complexity of our model by gradually removing unnecessary variables, while we continuously monitor the improvement of the $\hat{MSPE}$ averaged across the 5 folds of our data, until we reach the best possible value. It is easy to realise that this method belongs to the family of greedy algorithms as it consists of a series of consecutive, independent and non-reversible steps at which the optimal solution is chosen each time.
+
+
+```{r variableSelection}
+model_variables <- c("bath", "parking", "precip*bath", "dist_am1*parking", "dist_am2", "dist_am3", "sqft", "elevation")
+
+# perform K-fold cross-validation
+variablesSelectionResults <- selectVariablesCV(model_variables, trainingSet, "price", splits)
+
+# table of VarSel. first row contains full model MSPE
+selectionTable <- c("full model", fullModelAverageMSPE)
+selectionTable <- rbind(selectionTable, cbind(variablesSelectionResults$removedVariables, variablesSelectionResults$MSPEs))
+
+selectedModel <- lm(paste("price", joinVariables(variablesSelectionResults$bestModel), sep=" ~ "), data=trainingSet)
+selectedModel_RSS <- sum( (trainingSet$price - selectedModel$fitted.values)^2 )
+
+data.frame("removedVars"=selectionTable[,1], "MSPE"=selectionTable[,2]) %>%
+  kable(col.names = c("Removed variable", "average $\\hat{MSPE}$ after removal"),
+        caption="\\label{tab:variableSelection} Results from performing variable selection via backward elimination on the full model. The left column contains the removed variables in the order of removal, while the right one shows the average $\\hat{MSPE}$ from 5-fold C.V. after the removal of the variable on the left. The full model with its average $\\hat{MSPE}$ is displayed in the first row for reference.", align="c")
+```
+
+Table \ref{tab:variableSelection} shows the process of applying the aforementioned variable selection method on our full model. Following the order of the removals, the method decreased the complexity of the model by dropping the interaction between _"dist_am1"_ and _"parking"_, _"sqft"_, _"dist\_am3"_, _"parking"_, _"dist_am2"_ and, finally, _"elevation"_. That way, the method managed to reduce the average $\hat{MSPE}$ down to `r calculateMSPECV(variablesSelectionResults$bestModel, trainingSet, "price", splits)` from the initial, full model's value of `r fullModelAverageMSPE`. As a result, we now update our assumption about the true relationship between _"price"_ and our predictors in the population such that:
+$$ price_i =  \beta_0 + \beta_1\cdot{\mathbb{I}bath|2_i} + \beta_2\cdot{\mathbb{I}bath|3_i} + \beta_3\cdot{\mathbb{I}bath|4_i} +$$
+$$\beta_4\cdot{precip_i} + \beta_5\cdot{\mathbb{I}bath|2_i}\cdot{precip_i} + \beta_6\cdot{\mathbb{I}bath|3_i}\cdot{precip_i} + \beta_7\cdot{\mathbb{I}bath|4_i}\cdot{precip_i}$$
+$$+~\epsilon_i,~~~~\epsilon_i \stackrel{indep.}\sim N(0, \sigma^2), ~~~ i=1,...,450~~$$ 
+[(4.2.1)]{#VSModel}
+
+The results from fitting model [4.2.1](#VSModel) on the training data set is shown in table \ref{tab:varSelModel}. The reported p-values indicate that, accounting for all of the variables we used in our model, the categorical variable _"bath"_ and the interaction between precipitation and _"bath"_ seem to be significant predictors in terms of the sale price of a house. More specifically, our fitted model estimates that:
+
+* **for houses with 0 precipitation**, the expected sale price of a house with just one bathroom is, on average, 288833.246. This base price increases, on average, by 98592.790, 298359.921 or 431877.270 for 2, 3 or 4 bathrooms, respectively. This gradual increase in the price as we increase the number of bathrooms combined with the non-overlapping 95% C.I. for the OLS estimates of the price differences between the _"bath"_ categories show a significant positive relationship between the two variables and agree with our findings in section \ref{EDA}.
+
+* **for every 1 unit increase in precipitation**, the expected sale price of a house decreases, on average, by 50.454 for houses with 1 bathroom. However, the expected price seems to increase, on average, by 18.277, 3.206 or 39.697 per each unit increase in precipitation when the houses have 2, 3 or 4 bathrooms, respectively. The p-values of the estimates suggest that there is a statistically significant difference in the slopes of _"precip"_ between the categories of 1 and 2 bathrooms. Although we do not have enough evidence of a significant difference in the slopes between the rest of the categories, the reported p-values are very small(<10%) and some are close to 5%.
+
+It is, also, worth mentioning that $R_{(adj)}^2$, which takes the complexity of the used model into account, improves from the full model's value of `r 1 - ( full_model_RSS/(nrow(trainingSet)-19) )/( TSS/(nrow(trainingSet)-1) )` to `r 1 - ( selectedModel_RSS/(nrow(trainingSet)-8) )/( TSS/(nrow(trainingSet)-1) )`, suggesting that the predictors in model [4.2.1](#VSModel) are able to explain 86.23% of the variation in the sale price.
+
+```{r}
+get_regression_table(selectedModel) %>%
+  select(term, estimate, p_value, lower_ci, upper_ci) %>%
+  kable(caption="\\label{tab:varSelModel} The final model fitted on the training set after performing variable selection.")
+```
+
+However, the interpretation of model [4.2.1](#VSModel) and its application in predicting sale prices are worthless if the assumptions we made prior to fitting our model are violated. In reality, there is no formal way of checking the validity of those assumptions. However, the plots of the residuals in figure \ref{fig:VSassumptions} are commonly used in order to check the assumptions of our multiple linear regression model [4.2.1](#VSModel), as described in the book _"Linear Models with R"_ by J.J. Faraway[book]. 
+
+The "Residuals vs. Fitted" plot above shows 4 distinct vertical groups of data points. This behaviour is expected as our model relies heavily on the 4 disjoint _"bath"_ categories to calculate the fitted price, while precipitation plays a smaller role in explaining the remaining variability. Also, the plot depicts a random and even scattering of the data points above and below the horizontal 0 line with no obvious patterns suggesting that the assumption that the errors' mean is 0 holds and that there is no significant non-random structure left unexplained in our data. Plots of residuals against the excluded predictors further support this claim, as they show a random scattering of the data points without any obvious patterns. Finally, we observe a fairly equal scattering of the points about the 0 line which indicates that the assumption of constant variance(homoscedasticity) is valid. One could argue that there is a smaller variability observed for the residuals of the first and last column in the plot. However, it is important to consider that the dataset contains remarkably fewer observations for the categories of 1 or 4 bathrooms, which might be the reason behind this seemingly different variability. 
+
+Using the "Normal Q-Q" plot, we can check the assumption of normally distributed errors. The plot exhibits a light and a heavy tail and it does not have the _ideal_ shape. However, given the fact that we are modelling real-life data, it is reasonable to think that the points follow the dashed line adequetly and the assumption holds. The same can be inferred from the supplemental histogram of residuals, which resembles the bell shape of the Normal distribution but not perfectly.
+
+Lastly, we wish to look for any influential observations that we might need to discard as they could incorrectly draw the direction of the relationship towards them. Although the rest of the plots report consistently the observations "32" and "438" as possible outliers, the plot of residuals against leverage shows no observations within the contour lines of Cook's distance. Therefore, we choose not to remove any additional observations.
+
+```{r, out.width=".49\\linewidth", fig.cap="\\label{fig:VSassumptions} Plots of the residuals from fitting model 4.2.1 on the training set.", fig.show='hold', fig.height=4, fig.width=4}
+plot(selectedModel, which=1, sub.caption="")
+plot(selectedModel, which=2, sub.caption="")
+plot(selectedModel, which=5, sub.caption="")
+
+ggplot(mapping=aes(x=selectedModel$residuals)) + 
+  geom_histogram(bins=50) + xlab("Residuals")
+# bins 26
+```
+
+
+## Regularised regression with Ridge and Lasso
+variable selection: discrete. Shrinkage methods are continuous allowing for more flexible complexity reduction.
 ~~ TODO ~~
 
 
@@ -434,7 +651,13 @@ Lastly, we can calculate the mean squared prediction error of the full model fro
 ~~ TODO ~~
 
 # Further Work
-go beyond regression models, k-NN maybe. 
+1. More variables
+2. Go beyond regression models:
+
+  * PCA on distance variables to counter multicolinearity and regression on the 
+    full model with the PC instead of distances
+  * k-NN and calculate average neighbours(but first, feature scaling and possibly weighted distance).
+
 ~~ TODO ~~
 
 # References

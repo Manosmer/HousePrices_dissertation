@@ -2,6 +2,7 @@
 
 library(tidyverse)
 library(ggridges)
+library(moderndive)
 
 houseprices <- read.csv("~/Desktop/Glasgow Project/housing.csv")
 str(houseprices)
@@ -11,7 +12,7 @@ houseprices$bath <- factor(houseprices$bath)
 houseprices$parking <- as.factor(houseprices$parking)
 
 # extreme outlier removal
-houseprices <- houseprices[-348,]
+houseprices <- houseprices[c(-32,-348, -370, -491),]
 
 
 
@@ -28,10 +29,10 @@ houseprices$parkingBinaryNoPa <- as.factor(houseprices$parkingBinaryNoPa)
 levels(houseprices$parkingBinaryNoPa)
 
 # test: Parking Covered/NotProvided or something else
-houseprices$parkingBinaryCNotPr <- as.character(houseprices$parking)
-houseprices$parkingBinaryCNotPr[houseprices$parkingBinaryCNotPr == "Covered" | houseprices$parkingBinaryCNotPr == "Not Provided"] <- "Covered or Not Provided"
-houseprices$parkingBinaryCNotPr <- as.factor(houseprices$parkingBinaryCNotPr)
-levels(houseprices$parkingBinaryCNotPr)
+houseprices$parkingCNoP <- as.character(houseprices$parking)
+houseprices$parkingCNoP[houseprices$parkingCNoP == "Covered" | houseprices$parkingCNoP == "Not Provided"] <- "Covered or Not Provided"
+houseprices$parkingCNoP <- as.factor(houseprices$parkingCNoP)
+levels(houseprices$parkingCNoP)
 
 # test: Parking Covered/NotProvided or something else
 houseprices$parkingBinaryt <- as.character(houseprices$parking)
@@ -54,9 +55,9 @@ levels(houseprices$bathBinary4)
 
 
 set.seed(1635863590)
-trainingIndices <- sample(1:499, 299)
-validationIndices <- sample((1:499)[-trainingIndices], 150)
-testIndices <- (1:499)[c(-trainingIndices, -validationIndices)]
+trainingIndices <- sample(1:496, 299)
+validationIndices <- sample((1:496)[-trainingIndices], 150)
+testIndices <- (1:496)[c(-trainingIndices, -validationIndices)]
 
 trainingSet <- houseprices[trainingIndices,]
 validationSet <- houseprices[validationIndices,]
@@ -84,10 +85,10 @@ summary(md1)
 step(md, direction = "backward")
 
 
-fullModel <- lm(price ~ bath + parking + precip*bathBinary1 - bathBinary1 + dist_am1*parkingBinaryCNotPr - parkingBinaryCNotPr + dist_am2 + dist_am3 + sqft + elevation, data = trainingSet)
+fullModel <- lm(price ~ bath + parking + precip*bathBinary1 - bathBinary1 + dist_am1*parkingCNoP - parkingCNoP + dist_am2 + dist_am3 + sqft + elevation, data = trainingSet)
 
 ### MSPE ###
-sum( (validationSet$price - predict(fullModel, validationSet))^2 )/nrow(validationSet)
+sum( (validationSet$price - predict(md, validationSet))^2 )/nrow(validationSet)
 
 
 ### MAPE ###
@@ -102,10 +103,12 @@ md <- lm(price ~ bath + precip*bathBinary1 - bathBinary1, data = trainingSet)
 summary(md)
 
 # PROOF of preci:Bath
-houseprices[houseprices$bath != "1",] %>%
-  ggplot( mapping = aes( y = price, x = precip, colour = bath, fill = parking) ) + 
+houseprices %>%
+  ggplot( mapping = aes( y = price, x = log(sqft)) ) + 
   geom_point(shape = 1, size = 2.5) + 
   geom_smooth(method = "lm", se = FALSE)
+
+cor(houseprices$price, houseprices$sqft)
 
 #irrespective of the parking category, when bath=1 precip has a significant negative effect on price
 houseprices[houseprices$bath == "1",] %>%
@@ -128,4 +131,84 @@ houseprices %>%
   geom_smooth(method = "lm", se = FALSE)
 
 
+
+calculateMSPE(fullModel, validationSet, "price")
+
+
+model_variables <- c("bath", "parking", "precip*bathBinary1 - bathBinary1", "dist_am1*parkingCNoP - parkingCNoP", "dist_am2", "dist_am3", "sqft", "elevation")
+
+fullModel <- lm( paste("price", joinVariables( model_variables), sep=" ~ "), data=trainingSet)
+
+
+selectVariablesBoth <- function(variableVector, trainSet, validSet, responseVar) {
+  removedVariables <- c()
+  MSPEs <- c()
+  
+  
+  fullModel <- lm( paste(responseVar, joinVariables( variableVector ), sep=" ~ "), data=trainSet)
+  
+  minMSPE <- calculateMSPE(fullModel, validSet, responseVar)
+  removedVar <- 0
+  addedVar <- 0
+  bestFound <- FALSE
+  # remove each variable at a time and calculate MSPE
+  while(!bestFound & length(variableVector) > 0) {
+    bestFound <- TRUE
+    decisionRemove <- FALSE
+    
+    # REMOVE
+    for(i in seq_along(variableVector)) {
+      model <- lm( paste(responseVar, joinVariables( variableVector[-i] ), sep=" ~ "), data=trainSet)
+      currentMSPE <- calculateMSPE(model, validSet, responseVar)
+      
+      if(minMSPE > currentMSPE) {
+        bestFound <- FALSE
+        minMSPE <- currentMSPE
+        removedVar <- i
+        decisionRemove <- TRUE
+      }
+    }
+    
+    # ADD
+    for(i in seq_along(removedVariables)) {
+      model <- lm( paste(responseVar, joinVariables( c(variableVector, removedVariables[i]) ), sep=" ~ "), data=trainSet)
+      currentMSPE <- calculateMSPE(model, validSet, responseVar)
+      
+      if(minMSPE > currentMSPE) {
+        bestFound <- FALSE
+        minMSPE <- currentMSPE
+        addedVar <- i
+        decisionRemove <- FALSE
+      }
+    }
+    
+    if(!bestFound) {
+      if(decisionRemove) {
+        removedVariables <- c(removedVariables, variableVector[removedVar])
+        MSPEs <- c(MSPEs, minMSPE)
+        variableVector <- variableVector[-removedVar]
+      } else {
+        variableVector <- c(variableVector, removedVariables[addedVar])
+        MSPEs <- c(MSPEs, minMSPE)
+        removedVariables <- removedVariables[-addedVar]
+      }
+    }
+  }
+  
+  return(list(removedVariables = removedVariables, MSPEs = MSPEs, bestModel = variableVector))
+}
+
+selectVariablesBoth(model_variables, trainingSet, validationSet, "price")
+
+model_variables
+model <- lm( paste("price", joinVariables(model_variables), sep=" ~ "), data=trainingSet)
+calculateMSPE(model, validationSet, "price")
+
+best <- lm(price ~ bath + precip*bathBinary1 - bathBinary1 + dist_am3 + sqft, data=trainingSet)
+calculateMSPE(best, validationSet, "price")
+
+md <- lm(price ~ bath + parking + precip*bathBinary1 - bathBinary1, data = trainingSet)
+calculateMSPE(md, validationSet, "price")
+
+step(fullModel, direction="both")
 
