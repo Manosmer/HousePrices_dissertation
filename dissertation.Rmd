@@ -297,7 +297,7 @@ ggplot(data=houseprices, mapping = aes(x=price, fill=bath)) +
 
 Finally, it is important to investigate any interactions between categorical and numerical explanatory variables. Figure \ref{fig:scatterPriceAllByBath} shows the relationship of each numerical variable with _"price"_, on each _"bath"_ level, in the form of scatterplots with simple regression lines superimposed. On all plots, we observe four distinct layers of data corresponding to each _"bath"_ level. As we have already explained, these layers correspond to the full partitioning of the sample distribution of _"price"_ into four non-overlapping chunks when considering the variable _"bath"_. It is apparent that, regardless of the _"bath"_ category they belong to, the observations in the data extend fairly across the whole range of values on all numerical explanatory variables. 
 
-Excluding _"precip"_, the nature of the relationship between the rest of the explanatory variables and _"price"_ is roughly the same on each level of _"bath"_ and the relationships do not seem to improve for any of the variables when we take _"bath"_ into consideration (as seen from the scatterplots and the high p-values). In the case of the relationship between _"precip"_ and _"price"_, we observe a slightly positive trend on all levels except for the houses with one bathroom, where the relationship becomes negative. Therefore, the aforementioned relationship seems to improve and become interesting when considered under each _"bath"_ category. This fact is further supported by the p-values shown in table \ref{tab:precipBathFit} which are either close to the chosen 5% significance level or below it.
+Excluding _"precip"_, the nature of the relationship between the rest of the explanatory variables and _"price"_ is roughly the same on each level of _"bath"_ and the relationships do not seem to improve for any of the variables when we take _"bath"_ into consideration (as seen from the scatterplots and the high p-values). In the case of the relationship between _"precip"_ and _"price"_, we observe a slightly positive trend on all levels except for the houses with one bathroom, where the relationship becomes negative. Therefore, the aforementioned relationship seems to improve and become important when considered under each _"bath"_ category. This fact is further supported by the p-values shown in table \ref{tab:precipBathFit} which are either close to the chosen 5% significance level or below it.
 
 ```{r}
 get_regression_table(lm(price ~ precip*bath, data=houseprices)) %>%
@@ -306,7 +306,9 @@ get_regression_table(lm(price ~ precip*bath, data=houseprices)) %>%
 ```
 
 
-When we assess the same relationships under each category of _"parking"_, it can be shown that there is an almost complete overlap between the layers of data of the different _"parking"_ levels, with a random scattering of the data points and the p-values on those relationships are fairly large. This suggests that the single regression line model should be suitable for each relationship with _"price"_, with no difference in the slopes or the intercept terms among the categories (i.e. no interaction with _"parking"_). However, it appears that in the relationship of _"price"_ and _"dist\_am1"_ there is a significant difference in the slope of the simple linear regression lines among the _"parking"_ categories, except for the slopes in the categories "Covered" and "Not Provided" where they are roughly equal. This can be seen from both the figure \ref{fig:distAm1} and the table \ref{tab:distam1ParkingFit}. Therefore, it is important to study the possible interaction of _"dist\_am1"_ and _"parking"_. 
+When we assess the same relationships under each category of _"parking"_, it can be shown that there is an almost complete overlap between the layers of data of the different _"parking"_ levels, with a random scattering of the data points and the p-values on those relationships are fairly large. This suggests that the single regression line model should be suitable for each relationship with _"price"_, with no difference in the slopes or the intercept terms among the categories (i.e. no interaction with _"parking"_). 
+
+However, it appears that in the relationship of _"price"_ and _"dist\_am1"_ there is a significant difference in the slope of the simple linear regression lines among the _"parking"_ categories "Covered" and "No Parking" and a significantly large p-value for the slopes in the categories "Covered" and "Not Provided". This can be seen from both the figure \ref{fig:distAm1} and the table \ref{tab:distam1ParkingFit}. Therefore, it is important to study formally the possible interaction of _"dist\_am1"_ and _"parking"_. 
 
 
 Finally, we note that other transformations we applied on the numerical explanatory variables and on _"price"_ did not seem to improve the relationships between them.
@@ -374,7 +376,7 @@ We achieve this by splitting our original data set into two subsets; training an
 * 450 observations for training and C.V., 
 * 49 observations for assessment
 
-The reason for choosing cross-validation instead of a simple training/validation/test split is to avoid the case of a bad split, especially with a small data set as ours. With K-fold C.V. we are able to use all of our data and calculate a more robust estimate of the average (expected) prediction error [book ESLII]. In practice, we have used both techniques and we have experienced more solid results from variable selection via cross-validation (even with 5, 6 or 10 folds) than via the simple 3-subset split; small changes on the training set resulted in almost the same final subset of predictors. Also, the choice of the number of folds to use is of great importance as it balances the bias-variance trade-off. However, a usual choice for that number is 5 or 10 folds [Breiman and Spector or Kohavi], which is the choice we made in this paper.
+The reason for choosing cross-validation instead of a simple training/validation/test split is to avoid the case of a bad split, especially with a small data set as ours. With K-fold C.V. we are able to use all of our data and calculate a more robust estimate of the average (expected) prediction error [book ESLII]. In practice, we have used both techniques and we have experienced more consistent results from variable selection via cross-validation (even with 5, 6 or 10 folds) than via the simple 3-subset split; small changes on the training set resulted in almost the same final subset of predictors. Also, the choice of the number of folds to use is of great importance as it balances the bias-variance trade-off. However, a usual choice for that number is 5 or 10 folds [Breiman and Spector or Kohavi], which is the choice we made in this paper.
 
 ```{r datasetSplitting}
 set.seed(1635863590) # set a fixed seed so we get the same results each time we knit
@@ -429,9 +431,9 @@ $$+~\epsilon_i,~~~~\epsilon_i \stackrel{indep.}\sim N(0, \sigma^2), ~~~ i=1,...,
 , where the indicator variables(starting with $\mathbb{I}$) are equal to $1$ when the $i^{th}$ observation's corresponding categorical variable takes the relevant value(separated from the variable name with "|") and $0$ otherwise. The baseline categories are **1** for _"bath"_ and **Covered** for _"parking"_.
 
 
-Table \ref{tab:FullModelFit} shows the OLS estimates of the full model's regression coefficients along with their p-value and 95% Confidence Interval(C.I.), when fitted on the whole training set. The reported p-values suggest that the coefficients for the categories of _"bath"_ are significant, when considering all the predictors we used in the model and choosing a significance level of 5%. Furthermore, the absence of overlap between the 95% C.Is of the  _"bath"_ categories further underlines the importance of this predictor. 
+Table \ref{tab:FullModelFit} shows the OLS estimates of the full model's regression coefficients along with their p-value and 95% Confidence Interval(C.I.), when fitted on the whole training set. The reported p-values suggest that we have enough statistical evidence that the coefficients for the categories of _"bath"_ are significant, when considering all the predictors we used in the model and choosing a significance level of 5%. Furthermore, the absence of overlap between the 95% C.Is of the  _"bath"_ categories further underlines the importance of this predictor. 
 
-Additionally, the reported p-values related to the interaction between _"precip"_ and _"bath"_ are either below or close to the chosen 5% threshold, suggesting that this interaction seems important for predicting _"price"_, considering all the other predictors we used in the model. All the rest estimates have a p-value that is greater than the chosen significance level or, equivalently, they have a 95% C.I. that includes the value of $0$ as a plausible value for the coefficient in the population's regression model.
+Additionally, almost all of the reported p-values related to the interaction between _"precip"_ and _"bath"_ are either below or close to the chosen 5% threshold, suggesting that this interaction seems important for predicting _"price"_, considering all the other predictors we used in the model. All the rest estimates have a p-value that is greater than the chosen significance level or, equivalently, they have a 95% C.I. that includes the value of $0$ as a plausible value for the coefficient in the population's regression model.
 
 ```{r}
 joinVariables <- function(variableVector) {
@@ -576,7 +578,7 @@ selectVariablesCV <- function(variableVector, trainSet, responseVar, splits) {
 ```
 
 
-Although the full model is a good starting point to consider all predictors that could be possibly related to the response variable, it is almost certain that we have included excessive, unnecessary complexity that leads to overfitting. Usually, such a model is very flexible, lacks stability (high variance) and captures sample-specific features that are not generalisable to other data from the same population. In other words, this kind of models excel in estimating on their training data set, but fail to demonstrate a good performance in out-of-sample prediction. 
+Although the full model is a good starting point to consider all predictors that could be possibly related to the response variable, it is almost certain that we have included excessive, unnecessary complexity that leads to overfitting. Usually, such a model is very flexible, lacks stability (high variance) and captures sample-specific features that are not generalisable to other data from the same population (noise). In other words, this kind of models excel in estimating on their training data set, but fail to demonstrate a good performance in out-of-sample prediction. 
 
 Since our goal is to construct the best predictive model, we wish to minimise the average $\hat{MSPE}$ we obtain from cross-validation as much as possible and the method we chose to achieve this is **variable selection via backward elimination on the full model**. This iterative method starts by removing one variable at a time from the full model and calculating the average $\hat{MSPE}$ after each removal by performing 5-fold C.V. on the training set, until it has removed each variable once. Then, the method identifies the variable that resulted in the best(lowest) $\hat{MSPE}$ value after its removal and updates the model such that it does not contain this variable any longer. The method continues by seeking the next best variable to remove on the updated model. This process is repeated until either there is only one independent variable left or no more improvement can be achieved. 
 
@@ -601,18 +603,19 @@ data.frame("removedVars"=selectionTable[,1], "MSPE"=selectionTable[,2]) %>%
         caption="\\label{tab:variableSelection} Results from performing variable selection via backward elimination on the full model. The left column contains the removed variables in the order of removal, while the right one shows the average $\\hat{MSPE}$ from 5-fold C.V. after the removal of the variable on the left. The full model with its average $\\hat{MSPE}$ is displayed in the first row for reference.", align="c")
 ```
 
-Table \ref{tab:variableSelection} shows the process of applying the aforementioned variable selection method on our full model. Following the order of the removals, the method decreased the complexity of the model by dropping the interaction between _"dist_am1"_ and _"parking"_, _"sqft"_, _"dist\_am3"_, _"parking"_, _"dist_am2"_ and, finally, _"elevation"_. That way, the method managed to reduce the average $\hat{MSPE}$ down to `r calculateMSPECV(variablesSelectionResults$bestModel, trainingSet, "price", splits)` from the initial value of `r fullModelAverageMSPE`. Therefore, according to our findings we now update our assumption about the true relationship between _"price"_ and our predictors in the population such that:
+Table \ref{tab:variableSelection} shows the process of applying the aforementioned variable selection method on our full model. Following the order of the removals, the method decreased the complexity of the model by dropping the interaction between _"dist_am1"_ and _"parking"_, _"sqft"_, _"dist\_am3"_, _"parking"_, _"dist_am2"_ and, finally, _"elevation"_. That way, the method managed to reduce the average $\hat{MSPE}$ down to `r calculateMSPECV(variablesSelectionResults$bestModel, trainingSet, "price", splits)` from the initial, full model's value of `r fullModelAverageMSPE`. As a result, we now update our assumption about the true relationship between _"price"_ and our predictors in the population such that:
 $$ price_i =  \beta_0 + \beta_1\cdot{\mathbb{I}bath|2_i} + \beta_2\cdot{\mathbb{I}bath|3_i} + \beta_3\cdot{\mathbb{I}bath|4_i} +$$
 $$\beta_4\cdot{precip_i} + \beta_5\cdot{\mathbb{I}bath|2_i}\cdot{precip_i} + \beta_6\cdot{\mathbb{I}bath|3_i}\cdot{precip_i} + \beta_7\cdot{\mathbb{I}bath|4_i}\cdot{precip_i}$$
-$$+~\epsilon_i,~~~~\epsilon_i \stackrel{indep.}\sim N(0, \sigma^2), ~~~ i=1,...,450$$
+$$+~\epsilon_i,~~~~\epsilon_i \stackrel{indep.}\sim N(0, \sigma^2), ~~~ i=1,...,450~~$$ 
+[(4.2.1)]{#VSModel}
 
-The results from fitting the above model on the training data set is shown in table \ref{tab:varSelModel}. The reported p-values indicate that, accounting for all of the variables we used in our model, the categorical variable _"bath"_ and the interaction between precipitaion and _"bath"_ seem to be significant predictors regarding the sale price of a house. More specifically, our fitted model estimates that:
+The results from fitting model [4.2.1](#VSModel) on the training data set is shown in table \ref{tab:varSelModel}. The reported p-values indicate that, accounting for all of the variables we used in our model, the categorical variable _"bath"_ and the interaction between precipitation and _"bath"_ seem to be significant predictors in terms of the sale price of a house. More specifically, our fitted model estimates that:
 
 * **for houses with 0 precipitation**, the expected sale price of a house with just one bathroom is, on average, 288833.246. This base price increases, on average, by 98592.790, 298359.921 or 431877.270 for 2, 3 or 4 bathrooms, respectively. This gradual increase in the price as we increase the number of bathrooms combined with the non-overlapping 95% C.I. for the OLS estimates of the price differences between the _"bath"_ categories show a significant positive relationship between the two variables and agree with our findings in section \ref{EDA}.
 
-* **for every 1 unit increase in precipitation**, the expected sale price of a house decreases, on average, by 50.454 for houses with 1 bathroom. However, the expected price seems to increase by 18.277, 3.206 or 39.697 per unit of precipitation when the houses have 2, 3 or 4 bathrooms, respectively.
+* **for every 1 unit increase in precipitation**, the expected sale price of a house decreases, on average, by 50.454 for houses with 1 bathroom. However, the expected price seems to increase, on average, by 18.277, 3.206 or 39.697 per each unit increase in precipitation when the houses have 2, 3 or 4 bathrooms, respectively. The p-values of the estimates suggest that there is a statistically significant difference in the slopes of _"precip"_ between the categories of 1 and 2 bathrooms. Although we do not have enough evidence of a significant difference in the slopes between the rest of the categories, the reported p-values are very small(<10%) and some are close to 5%.
 
-It is, also, worth mentioning that $R_{(adj)}^2$, which takes the complexity of the used model into account, improves from the full model's value `r 1 - ( full_model_RSS/(nrow(trainingSet)-19) )/( TSS/(nrow(trainingSet)-1) )` to `r 1 - ( selectedModel_RSS/(nrow(trainingSet)-8) )/( TSS/(nrow(trainingSet)-1) )`, suggesting that we are able to explain 86.23% of the variation in the sale price.
+It is, also, worth mentioning that $R_{(adj)}^2$, which takes the complexity of the used model into account, improves from the full model's value of `r 1 - ( full_model_RSS/(nrow(trainingSet)-19) )/( TSS/(nrow(trainingSet)-1) )` to `r 1 - ( selectedModel_RSS/(nrow(trainingSet)-8) )/( TSS/(nrow(trainingSet)-1) )`, suggesting that the predictors in model [4.2.1](#VSModel) are able to explain 86.23% of the variation in the sale price.
 
 ```{r}
 get_regression_table(selectedModel) %>%
@@ -620,21 +623,23 @@ get_regression_table(selectedModel) %>%
   kable(caption="\\label{tab:varSelModel} The final model fitted on the training set after performing variable selection.")
 ```
 
+However, the interpretation of model [4.2.1](#VSModel) and its application in predicting sale prices are worthless if the assumptions we made prior to fitting our model are violated. In reality, there is no formal way of checking the validity of those assumptions. However, the plots of the residuals in figure \ref{fig:VSassumptions} are commonly used in order to check the assumptions of our multiple linear regression model [4.2.1](#VSModel), as described in the book _"Linear Models with R"_ by J.J. Faraway[book]. 
 
-Assumptions: mention that residuals vs. not included predictors show no relation
+The "Residuals vs. Fitted" plot above shows 4 distinct vertical groups of data points. This behaviour is expected as our model relies heavily on the 4 disjoint _"bath"_ categories to calculate the fitted price, while precipitation plays a smaller role in explaining the remaining variability. Also, the plot depicts a random and even scattering of the data points above and below the horizontal 0 line with no obvious patterns suggesting that the assumption that the errors' mean is 0 holds and that there is no significant non-random structure left unexplained in our data. Plots of residuals against the excluded predictors further support this claim, as they show a random scattering of the data points without any obvious patterns. Finally, we observe a fairly equal scattering of the points about the 0 line which indicates that the assumption of constant variance(homoscedasticity) is valid. One could argue that there is a smaller variability observed for the residuals of the first and last column in the plot. However, it is important to consider that the dataset contains remarkably fewer observations for the categories of 1 or 4 bathrooms, which might be the reason behind this seemingly different variability. 
 
+Using the "Normal Q-Q" plot, we can check the assumption of normally distributed errors. The plot exhibits a light and a heavy tail and it does not have the _ideal_ shape. However, given the fact that we are modelling real-life data, it is reasonable to think that the points follow the dashed line adequetly and the assumption holds. The same can be inferred from the supplemental histogram of residuals, which resembles the bell shape of the Normal distribution but not perfectly.
 
+Lastly, we wish to look for any influential observations that we might need to discard as they could incorrectly draw the direction of the relationship towards them. Although the rest of the plots report consistently the observations "32" and "438" as possible outliers, the plot of residuals against leverage shows no observations within the contour lines of Cook's distance. Therefore, we choose not to remove any additional observations.
 
-```{r, out.width="48%"}
-plot(selectedModel, which=c(1,2,5), sub.caption="")
+```{r, out.width=".49\\linewidth", fig.cap="\\label{fig:VSassumptions} Plots of the residuals from fitting model 4.2.1 on the training set.", fig.show='hold', fig.height=4, fig.width=4}
+plot(selectedModel, which=1, sub.caption="")
+plot(selectedModel, which=2, sub.caption="")
+plot(selectedModel, which=5, sub.caption="")
+
 ggplot(mapping=aes(x=selectedModel$residuals)) + 
-  geom_histogram(bins=28) + xlab("Residuals")
-# bins 28
+  geom_histogram(bins=50) + xlab("Residuals")
+# bins 26
 ```
-
-
-
-~~ TODO ~~
 
 
 ## Regularised regression with Ridge and Lasso
