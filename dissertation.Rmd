@@ -26,6 +26,7 @@ library(skimr)
 library(tidyverse)
 library(moderndive)
 library(GGally)
+library(glmnet)
 library(corrplot)
 ```
 
@@ -138,6 +139,7 @@ houseprices[which.max(houseprices$price),] %>%
 ```{r}
 # removing the extreme high outlier from the data set
 houseprices <- houseprices[-which.max(houseprices$price),]
+houseprices$bath <- as.factor(as.character(houseprices$bath))
 ```
 
 
@@ -461,16 +463,16 @@ calculateMSPECV <- function(variableVector, dataset, responseVar, splits) {
   k <- length(splits)
   if(k <= 1) stop("Data set splits must be more than 1.")
   
-  MSPEs <- numeric(k)
+  MSPE <- 0
   for(i in 1:k) {
     validSet <- dataset[splits[[i]], ]
     trainSet <- dataset[ (1:dataSetLength)[ -splits[[i]] ], ]
     
     model <- lm( paste(responseVar, joinVariables( variableVector ), sep=" ~ "), data=trainSet)
-    MSPEs[i] <- calculateMSPE(model, validSet, responseVar) 
+    MSPE <- MSPE + calculateMSPE(model, validSet, responseVar) 
   }
   
-  return(sum(MSPEs) / k)
+  return(MSPE / k)
 }
 ```
 
@@ -625,9 +627,9 @@ get_regression_table(selectedModel) %>%
 
 However, the interpretation of model [4.2.1](#VSModel) and its application in predicting sale prices are worthless if the assumptions we made prior to fitting our model are violated. In reality, there is no formal way of checking the validity of those assumptions. However, the plots of the residuals in figure \ref{fig:VSassumptions} are commonly used in order to check the assumptions of our multiple linear regression model [4.2.1](#VSModel), as described in the book _"Linear Models with R"_ by J.J. Faraway[book]. 
 
-The "Residuals vs. Fitted" plot above shows 4 distinct vertical groups of data points. This behaviour is expected as our model relies heavily on the 4 disjoint _"bath"_ categories to calculate the fitted price, while precipitation plays a smaller role in explaining the remaining variability. Also, the plot depicts a random and even scattering of the data points above and below the horizontal 0 line with no obvious patterns suggesting that the assumption that the errors' mean is 0 holds and that there is no significant non-random structure left unexplained in our data. Plots of residuals against the excluded predictors further support this claim, as they show a random scattering of the data points without any obvious patterns. Finally, we observe a fairly equal scattering of the points about the 0 line which indicates that the assumption of constant variance(homoscedasticity) is valid. One could argue that there is a smaller variability observed for the residuals of the first and last column in the plot. However, it is important to consider that the dataset contains remarkably fewer observations for the categories of 1 or 4 bathrooms, which might be the reason behind this seemingly different variability. 
+The "Residuals vs. Fitted" plot above shows 4 distinct vertical groups of data points. This behaviour is expected as our model relies heavily on the 4 disjoint _"bath"_ categories to calculate the fitted price, while precipitation plays a smaller role in explaining the remaining variability. Also, the plot depicts a random and even scattering of the data points above and below the horizontal 0 line with no obvious patterns suggesting that the assumption that the errors' mean is 0 holds and that there is no significant non-random structure left unexplained in our data. Plots of residuals against the excluded predictors further support this claim, as they show a random scattering of the data points without any obvious patterns. Finally, we observe a fairly equal scattering of the points about the 0 line across the range of the fitted values which indicates that the assumption of constant variance(homoscedasticity) is valid. One could argue that there is smaller variability observed for the residuals of the first and last column in the plot. However, it is important to consider that the data set contains remarkably fewer observations for the categories of 1 or 4 bathrooms, which might be the reason behind this seemingly different variability. 
 
-Using the "Normal Q-Q" plot, we can check the assumption of normally distributed errors. The plot exhibits a light and a heavy tail and it does not have the _ideal_ shape. However, given the fact that we are modelling real-life data, it is reasonable to think that the points follow the dashed line adequetly and the assumption holds. The same can be inferred from the supplemental histogram of residuals, which resembles the bell shape of the Normal distribution but not perfectly.
+Using the "Normal Q-Q" plot, we can check the assumption of normally distributed errors. The plot exhibits a light and a heavy tail and it does not have the _ideal_ shape. However, given the fact that we are modelling real-life data, it is reasonable to think that the points follow the dashed line adequately and the assumption holds. The same can be inferred from the supplemental histogram of residuals, which resembles the bell shape of the Normal distribution but not perfectly.
 
 Lastly, we wish to look for any influential observations that we might need to discard as they could incorrectly draw the direction of the relationship towards them. Although the rest of the plots report consistently the observations "32" and "438" as possible outliers, the plot of residuals against leverage shows no observations within the contour lines of Cook's distance. Therefore, we choose not to remove any additional observations.
 
@@ -643,7 +645,70 @@ ggplot(mapping=aes(x=selectedModel$residuals)) +
 
 
 ## Regularised regression with Ridge and Lasso
-variable selection: discrete. Shrinkage methods are continuous allowing for more flexible complexity reduction.
+
+As mentioned in book [ESLII], "Variable Selection" can be considered as a _discrete_ technique, in the sense that complexity reduction is achieved by choosing to either include a variable in the model or exclude it from it. 
+
+However, there are methods that provide a _continuous_ and more flexible complexity reduction. The estimated parameter values from fitting the model using the least squares approach can be seen as the weighted influence of each predictor on the predicted outcome. As a result, there is opportunity to decrease the absolute value of those parameters in order to further reduce the influence of some predictors, thus resulting in a _continuous_ method of complexity reduction without the need to completely remove the included predictors. This idea leads to "Regularised Regression" and both **Ridge** and **Lasso** belong to this family of regression techniques. 
+
+In the Ordinary Least Squares(OLS) approach, which is the typical linear regression technique and the one we used so far in this paper, we want to estimate the regression parameters in such a way that the resulting regression line has in total the smallest distance possible from the data points, given the selected predictors. This implies the use of a loss function that calculates the total (estimated) error between the estimated line and the data points, which allows for the optimisation of this problem. Assuming that the parametric form of the chosen model is correct(true), the OLS estimates are unbiased. This means that, if we could fit the same model on a sufficiently large amount of data sets from the same population and average out the results, the average model would be asymptotically equal to the true relationship in the population.
+
+
+Shrinkage, penalty, Bias
+
+```{r}
+RR_findLambdaCV <- function(f, alpha, lambdas, dataset, splits) {
+  k <- length(splits)
+  if(k <= 1) stop("Data set splits must be more than 1.")
+  
+  lambdasLength <- length(lambdas)
+  if(lambdasLength < 1) stop("Must provide 1 or more lambda values")
+  
+  responseVar <- rownames(attr(terms(f), "factors"))[attr(terms(f), "response")]
+  lambdas <- sort(lambdas, decreasing = TRUE) # glmnet suggests to provide a decreasing sequence of lambdas
+  dataSetLength <- nrow(dataset)
+  
+  MSPEs_perLambda <- numeric(lambdasLength)
+  
+  
+  for(i in 1:k) {
+    validSet <- dataset[splits[[i]], ]
+    trainSet <- dataset[ (1:dataSetLength)[ -splits[[i]] ], ]
+    
+    X <- model.matrix(f, data=trainSet)[,-1]
+    ridgeModel <- glmnet(X, trainSet[[responseVar]], family="gaussian", alpha=alpha, lambda=lambdas, maxit = 10^7)
+    
+    MSPEs_perLambda <- MSPEs_perLambda + apply( (validSet[[responseVar]] - predict(ridgeModel, model.matrix(f, data=validSet)[,-1]))^2 , 2, sum)/nrow(validSet)
+  }
+  MSPEs_perLambda <- MSPEs_perLambda / k
+  
+  return(list(lambdas=lambdas, MSPE=MSPEs_perLambda))
+}
+
+X <- model.matrix(formula(price ~ bath*precip), data=trainingSet)[,-1]
+#ridgeModel <- glmnet(X, trainingSet$price, family="gaussian", alpha=0, lambda=lambdas, maxit = 10^7)
+
+#apply( (testSet$price - predict(ridgeModel, model.matrix(formula(price ~ bath*precip), data=testSet)[,-1]))^2 , 2, sum)/nrow(testSet)
+
+folds <- numeric(450)
+for(i in 1:450) {
+  for(j in seq_along(splits)){
+    if(i %in% splits[[j]]) {
+      folds[i] <- j
+      break
+    }
+  }
+}
+#cvfit <- cv.glmnet(X, trainingSet$price, alpha=0, nfolds=5, type.measure="mse", foldid=folds, lambda=seq(0, 900, 0.01))
+#cvfit$lambda.min
+
+lambdas <- seq(0, 900, 0.01)
+findLambda_res <- RR_findLambdaCV(price ~ precip*bath, 0, lambdas, trainingSet, splits)
+findLambda_res$lambdas[which.min(findLambda_res$MSPE)]
+findLambda_res$MSPE[findLambda_res$lambdas == 0]
+```
+
+
+
 ~~ TODO ~~
 
 
