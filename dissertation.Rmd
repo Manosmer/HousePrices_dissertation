@@ -1,7 +1,8 @@
 ---
-title: "Dissertation"
+title: "Dissertation on Housing Market Analysis"
+subtitle: "Best Possible Regression"
 author: "Emmanouil Mertzianis"
-date: "10/1/2021"
+date: "10/10/2021"
 output:
   pdf_document:
     latex_engine: xelatex
@@ -648,15 +649,38 @@ ggplot(mapping=aes(x=selectedModel$residuals)) +
 
 As mentioned in book [ESLII], "Variable Selection" can be considered as a _discrete_ technique, in the sense that complexity reduction is achieved by choosing to either include a variable in the model or exclude it from it. 
 
-However, there are methods that provide a _continuous_ and more flexible complexity reduction. The estimated parameter values from fitting the model using the least squares approach can be seen as the weighted influence of each predictor on the predicted outcome. As a result, there is opportunity to decrease the absolute value of those parameters in order to further reduce the influence of some predictors, thus resulting in a _continuous_ method of complexity reduction without the need to completely remove the included predictors. This idea leads to "Regularised Regression" and both **Ridge** and **Lasso** belong to this family of regression techniques. 
+However, there are methods that provide a _continuous_ and more flexible complexity reduction. The estimated parameter values from fitting the model using the least squares approach can be seen as the weighted influence of each predictor on the predicted outcome. As a result, there is opportunity to decrease the absolute value of those parameters in order to reduce the influence of some predictors(_smoothing_), thus resulting in a _continuous_ method of complexity reduction without necessarily removing the included predictors completely. This idea leads to "Regularised Regression" and both **Ridge** and **Lasso** belong to this family of regression techniques. 
 
-In the Ordinary Least Squares(OLS) approach, which is the typical linear regression technique and the one we used so far in this paper, we want to estimate the regression parameters in such a way that the resulting regression line has in total the smallest distance possible from the data points, given the selected predictors. This implies the use of a loss function that calculates the total (estimated) error between the estimated line and the data points, which allows for the optimisation of this problem. Assuming that the parametric form of the chosen model is correct(true), the OLS estimates are unbiased. This means that, if we could fit the same model on a sufficiently large amount of data sets from the same population and average out the results, the average model would be asymptotically equal to the true relationship in the population.
+In the Ordinary Least Squares(OLS) approach, which is the typical linear regression technique and the one we used so far in this paper, we want to estimate the regression parameters in such a way that the resulting regression line has in total the closest distance possible from the data points, given the selected predictors. This implies the use of a loss function that calculates the total discrepancy between the estimated line and the data points, which allows for finding the optimal solution through loss minimisation. Assuming that the parametric form of the chosen model is correct(true), the OLS estimates are unbiased[ESLII]. This means that, if we could fit the same model on a sufficiently large amount of different data sets from the same population and average out the results, the average model would be asymptotically equal to the true relationship in the population. In fact, the Gauss-Markov Theorem states that, among all linear _unbiased_ estimators, the OLS estimator has the smallest variance and, therefore, the smallest Mean Squared Error.
+
+Although the OLS estimates can be considered as unbiased when the correct parametric model is selected, in reality there can be a biased estimator with better prediction performance. Since the prediction error is a mixture of the bias and the variance of the model, we ultimately want to achieve the best Mean Squared Error.
+
+In Lasso and Ridge, we exploit the loss function by integrating a penalty term for each parameter estimate that is related to its absolute value. More specifically, parameter estimates that are higher in absolute value result in more loss because of their penalty term, thus leading to the need of an equilibrium between avoiding penalisation and achieving the closest fit. Consequently, the use of penalties limits the magnitude of the estimates and biases them towards 0. In other words, we try to find the correct balance of bias and variance by introducing more bias in our model in order to achieve much less variance. 
+
+The loss function of the regularised regression has the following form:
+$$L(\vec{\theta}) = \sum_{i=1}^n{(y_i - \vec{\theta}\cdot \vec{x_i})} + \lambda \cdot r(\vec{\theta})$$
+, where the sum is the Residual Sum of Squares, $r(\vec{\theta})$ is the penalty function of the regression parameters and $\lambda$ is a hyperparameter called _regularisation parameter_ that adjusts the weight of the penalty in the overall loss.
+
+The difference between the two regularised regression methods is in their penalty function. Ridge regression uses the squared $L_2-norm$ of the parameters' vector, while Lasso uses the $L_1-norm$. This small difference results in a different behaviour.
+
+```{r}
+theta <- seq(-4,4,length=100)
+plot(c(-4,4),c(-1,17), type = "n", xlab=expression(theta), ylab="Penalty")
+lines(theta,abs(theta), lty=1, col = 1)
+lines(theta,theta^2, lty=2, col = 2)
+legend("top", legend=c("Lasso", "Ridge"), col = c(1,2), lty=c(1,2))
+```
 
 
 Shrinkage, penalty, Bias
 
-```{r}
+Application similar to the one described in book [An Introduction to Statistical Learning]
+
+
+```{r LambdaCVFunction}
 RR_findLambdaCV <- function(f, alpha, lambdas, dataset, splits) {
+  # find best lambda for RR using K-Fold CV
+  
   k <- length(splits)
   if(k <= 1) stop("Data set splits must be more than 1.")
   
@@ -675,20 +699,17 @@ RR_findLambdaCV <- function(f, alpha, lambdas, dataset, splits) {
     trainSet <- dataset[ (1:dataSetLength)[ -splits[[i]] ], ]
     
     X <- model.matrix(f, data=trainSet)[,-1]
-    ridgeModel <- glmnet(X, trainSet[[responseVar]], family="gaussian", alpha=alpha, lambda=lambdas, maxit = 10^7)
+    ridgeModel <- glmnet(X, trainSet[[responseVar]], family="gaussian", alpha=alpha, lambda=lambdas, maxit = 10^8, thresh=1e-12)
     
-    MSPEs_perLambda <- MSPEs_perLambda + apply( (validSet[[responseVar]] - predict(ridgeModel, model.matrix(f, data=validSet)[,-1]))^2 , 2, sum)/nrow(validSet)
+    MSPEs_perLambda <- MSPEs_perLambda + colSums( (validSet[[responseVar]] - predict(ridgeModel, model.matrix(f, data=validSet)[,-1], exact=TRUE))^2)/nrow(validSet)
   }
   MSPEs_perLambda <- MSPEs_perLambda / k
   
   return(list(lambdas=lambdas, MSPE=MSPEs_perLambda))
 }
+```
 
-X <- model.matrix(formula(price ~ bath*precip), data=trainingSet)[,-1]
-#ridgeModel <- glmnet(X, trainingSet$price, family="gaussian", alpha=0, lambda=lambdas, maxit = 10^7)
-
-#apply( (testSet$price - predict(ridgeModel, model.matrix(formula(price ~ bath*precip), data=testSet)[,-1]))^2 , 2, sum)/nrow(testSet)
-
+```{r, eval = FALSE}
 folds <- numeric(450)
 for(i in 1:450) {
   for(j in seq_along(splits)){
@@ -698,13 +719,36 @@ for(i in 1:450) {
     }
   }
 }
-#cvfit <- cv.glmnet(X, trainingSet$price, alpha=0, nfolds=5, type.measure="mse", foldid=folds, lambda=seq(0, 900, 0.01))
-#cvfit$lambda.min
+lambdas = seq(1000000, 0.01, length=8000)
+X <- model.matrix(formula(price ~ bath*precip), data=trainingSet)[,-1]
+cvfit <- cv.glmnet(X, trainingSet$price, alpha=0, nfolds=5, type.measure="mse", foldid=folds, lambda=lambdas)
+cvfit$lambda.min
+min(cvfit$cvm)
+coef(cvfit)[,cvfit$lambda == cvfit$lambda.min]
+```
 
-lambdas <- seq(0, 900, 0.01)
-findLambda_res <- RR_findLambdaCV(price ~ precip*bath, 0, lambdas, trainingSet, splits)
+```{r FindLambdaCV}
+lambdas <- 10^seq(20, -2, length=10000)
+findLambda_res <- RR_findLambdaCV(price ~ precip*bath, alpha=0, lambdas, trainingSet, splits)
 findLambda_res$lambdas[which.min(findLambda_res$MSPE)]
-findLambda_res$MSPE[findLambda_res$lambdas == 0]
+min(findLambda_res$MSPE)
+
+X <- model.matrix(formula(price ~ bath*precip), data=trainingSet)[,-1]
+coef(glmnet(X, trainingSet$price, family="gaussian", alpha=0, lambda=10^20, maxit = 10^8, thresh=1e-12))
+```
+
+
+```{r, eval=TRUE}
+#lambdas <- 10^seq(20, -3, length=8000)
+
+lambdas <- 10^seq(25, -2, length=10000)
+findLambda_res <- RR_findLambdaCV(price ~ precip*bath + dist_am1*parking + dist_am2 + dist_am3 + sqft + elevation, alpha=1, lambdas, trainingSet, splits)
+findLambda_res$lambdas[which.min(findLambda_res$MSPE)]
+
+X <- model.matrix(formula(price ~ precip*bath + dist_am1*parking + sqft + elevation), data=trainingSet)[,-1]
+coef(glmnet(X, trainingSet$price, family="gaussian", alpha=1, lambda=10^25, maxit = 10^8, thresh=1e-12))
+
+calculateMSPECV(c("bath*precip", "dist_am1", "dist_am2", "sqft", "elevation"), trainingSet, "price", splits)
 ```
 
 
