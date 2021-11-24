@@ -368,7 +368,7 @@ get_regression_table(lm(price ~ dist_am1*parking, data=houseprices)) %>%
 
 # Model Fitting: Selecting the best possible regression model {#ModelFitting}
 
-The **primary objective** of this paper is to search for and design the best possible _predictive_ regression model to accurately predict the sale price of a house based on the rest of its attributes. The main approach we chose for this problem is **variable selection on the full model via backward elimination**. 
+The **primary objective** of this paper is to search for and design the best possible _predictive_ regression model to accurately predict the sale price of a house based on the rest of its attributes. The main approach we chose for this problem is **best-subset selection on the full model via backward elimination**. 
 
 For this purpose, we decided on assessing our models' performance and conduct variable selection based on the average **Mean Squared (Prediction) Error** calculated using 5-fold cross-validation(C.V.) on the training data:
 
@@ -384,13 +384,6 @@ The reason for choosing cross-validation instead of a simple training/validation
 ```{r datasetSplitting}
 set.seed(1635863590) # set a fixed seed so we get the same results each time we knit
 
-#trainingIndices <- sample(1:499, 299)
-#validationIndices <- sample((1:499)[-trainingIndices], 150)
-#testIndices <- (1:499)[c(-trainingIndices, -validationIndices)]
-
-#trainingSet <- houseprices[trainingIndices,]
-#validationSet <- houseprices[validationIndices,]
-#testSet <- houseprices[testIndices,]
 
 testIndices <- sample(1:499, 49)
 trainingIndices <- (1:499)[-testIndices]
@@ -398,7 +391,7 @@ trainingIndices <- (1:499)[-testIndices]
 testSet <- houseprices[testIndices,]
 trainingSet <- houseprices[trainingIndices,]
 
-# trainingSet <- trainingSet[!(rownames(trainingSet)=="32" | rownames(trainingSet)=="438"),]
+
 # 5-fold split for 5-fold cross-validation
 k <- 5
 trainSetLength <- nrow(trainingSet)
@@ -497,7 +490,7 @@ Lastly, we can calculate the average Mean Squared Prediction Error of the full m
 
 
 
-## Variable Selection
+## Variable Selection via Best-Subset Selection
 
 ```{r variableSelectionFunctions}
 selectVariables <- function(variableVector, trainSet, validSet, responseVar) {
@@ -583,7 +576,7 @@ selectVariablesCV <- function(variableVector, trainSet, responseVar, splits) {
 
 Although the full model is a good starting point to consider all predictors that could be possibly related to the response variable, it is almost certain that we have included excessive, unnecessary complexity that leads to overfitting. Usually, such a model is very flexible, lacks stability (high variance) and captures sample-specific features that are not generalisable to other data from the same population (noise). In other words, this kind of models excel in estimating on their training data set, but fail to demonstrate a good performance in out-of-sample prediction. 
 
-Since our goal is to construct the best predictive model, we wish to minimise the average $\hat{MSPE}$ we obtain from cross-validation as much as possible and the method we chose to achieve this is **variable selection via backward elimination on the full model**. This iterative method starts by removing one variable at a time from the full model and calculating the average $\hat{MSPE}$ after each removal by performing 5-fold C.V. on the training set, until it has removed each variable once. Then, the method identifies the variable that resulted in the best(lowest) $\hat{MSPE}$ value after its removal and updates the model such that it does not contain this variable any longer. The method continues by seeking the next best variable to remove on the updated model. This process is repeated until either there is only one independent variable left or no more improvement can be achieved. 
+Since our goal is to construct the best predictive model, we wish to minimise the average $\hat{MSPE}$ we obtain from cross-validation as much as possible and the method we chose to achieve this is **best-subset selection via backward elimination on the full model**. This iterative method starts by removing one variable at a time from the full model and calculating the average $\hat{MSPE}$ after each removal by performing 5-fold C.V. on the training set, until it has removed each variable once. Then, the method identifies the variable that resulted in the best(lowest) $\hat{MSPE}$ value after its removal and updates the model such that it does not contain this variable any longer. The method continues by seeking the next best variable to remove on the updated model. This process is repeated until either there is only one independent variable left or no more improvement can be achieved. 
 
 In simple words, we decrease the overall complexity of our model by gradually removing unnecessary variables, while we continuously monitor the improvement of the $\hat{MSPE}$ averaged across the 5 folds of our data, until we reach the best possible value. It is easy to realise that this method belongs to the family of greedy algorithms as it consists of a series of consecutive, independent and non-reversible steps at which the optimal solution is chosen each time.
 
@@ -628,7 +621,9 @@ get_regression_table(selectedModel) %>%
 
 However, the interpretation of model [4.2.1](#VSModel) and its application in predicting sale prices are worthless if the assumptions we made prior to fitting our model are violated. In reality, there is no formal way of checking the validity of those assumptions. However, the plots of the residuals in figure \ref{fig:VSassumptions} are commonly used in order to check the assumptions of our multiple linear regression model [4.2.1](#VSModel), as described in the book _"Linear Models with R"_ by J.J. Faraway[book]. 
 
-The "Residuals vs. Fitted" plot above shows 4 distinct vertical groups of data points. This behaviour is expected as our model relies heavily on the 4 disjoint _"bath"_ categories to calculate the fitted price, while precipitation plays a smaller role in explaining the remaining variability. Also, the plot depicts a random and even scattering of the data points above and below the horizontal 0 line with no obvious patterns suggesting that the assumption that the errors' mean is 0 holds and that there is no significant non-random structure left unexplained in our data. Plots of residuals against the excluded predictors further support this claim, as they show a random scattering of the data points without any obvious patterns. Finally, we observe a fairly equal scattering of the points about the 0 line across the range of the fitted values which indicates that the assumption of constant variance(homoscedasticity) is valid. One could argue that there is smaller variability observed for the residuals of the first and last column in the plot. However, it is important to consider that the data set contains remarkably fewer observations for the categories of 1 or 4 bathrooms, which might be the reason behind this seemingly different variability. 
+The "Residuals vs. Fitted" plot above shows 4 distinct vertical groups of data points. This behaviour is expected as our model relies heavily on the 4 disjoint _"bath"_ categories to calculate the fitted price, while precipitation plays a smaller role in explaining the remaining variability. Also, the plot depicts a random and even scattering of the data points above and below the horizontal 0 line with no obvious patterns suggesting that the assumption that the errors' mean is 0 holds and that there is no significant non-random structure left unexplained in our data. Plots of residuals against the excluded predictors further support this claim, as they show a random scattering of the data points without any obvious patterns. 
+
+Finally, we observe a fairly equal scattering of the points about the 0 line across the range of the fitted values which indicates that the assumption of constant variance(homoscedasticity) is valid. One could argue that there is smaller variability observed for the residuals of the first and last column in the plot. However, it is important to consider that the data set contains remarkably fewer observations for the categories of 1 or 4 bathrooms, which might be the reason behind this seemingly different variability. 
 
 Using the "Normal Q-Q" plot, we can check the assumption of normally distributed errors. The plot exhibits a light and a heavy tail and it does not have the _ideal_ shape. However, given the fact that we are modelling real-life data, it is reasonable to think that the points follow the dashed line adequately and the assumption holds. The same can be inferred from the supplemental histogram of residuals, which resembles the bell shape of the Normal distribution but not perfectly.
 
@@ -647,34 +642,28 @@ ggplot(mapping=aes(x=selectedModel$residuals)) +
 
 ## Regularised regression with Ridge and Lasso
 
-As mentioned in book [ESLII], "Variable Selection" can be considered as a _discrete_ technique, in the sense that complexity reduction is achieved by choosing to either include a variable in the model or exclude it from it. 
+As mentioned in book [ESLII], "Best-Subset Selection" can be considered as a _discrete_ technique, in the sense that complexity reduction is achieved by choosing to either include a variable in the model or exclude it from it. 
 
 However, there are methods that provide a _continuous_ and more flexible complexity reduction. The estimated parameter values from fitting the model using the least squares approach can be seen as the weighted influence of each predictor on the predicted outcome. As a result, there is opportunity to decrease the absolute value of those parameters in order to reduce the influence of some predictors(_smoothing_), thus resulting in a _continuous_ method of complexity reduction without necessarily removing the included predictors completely. This idea leads to "Regularised Regression" and both **Ridge** and **Lasso** belong to this family of regression techniques. 
 
-In the Ordinary Least Squares(OLS) approach, which is the typical linear regression technique and the one we used so far in this paper, we want to estimate the regression parameters in such a way that the resulting regression line has in total the closest distance possible from the data points, given the selected predictors. This implies the use of a loss function that calculates the total discrepancy between the estimated line and the data points, which allows for finding the optimal solution through loss minimisation. Assuming that the parametric form of the chosen model is correct(true), the OLS estimates are unbiased[ESLII]. This means that, if we could fit the same model on a sufficiently large amount of different data sets from the same population and average out the results, the average model would be asymptotically equal to the true relationship in the population. In fact, the Gauss-Markov Theorem states that, among all linear _unbiased_ estimators, the OLS estimator has the smallest variance and, therefore, the smallest Mean Squared Error.
+In the Ordinary Least Squares(OLS) approach, which is the typical linear regression technique and the one we used so far in this paper, we want to estimate the regression parameters in such a way that the resulting regression line has in total the closest distance possible from the data points, given the selected predictors. This implies the use of a loss function that calculates the total discrepancy between the estimated line and the data points, which allows for finding the optimal solution through loss minimisation. Assuming that the parametric form of the chosen model is correct(true), the OLS estimates are unbiased[ESLII]. This means that, if we could fit the same model on a sufficiently large amount of different data sets from the same population and average the results, the average model would be asymptotically equal to the true relationship in the population. In fact, the Gauss-Markov Theorem states that, among all linear _unbiased_ estimators, the OLS estimator has the smallest variance and, therefore, the smallest Mean Squared Error.
 
-Although the OLS estimates can be considered as unbiased when the correct parametric model is selected, in reality there can be a biased estimator with better prediction performance. Since the prediction error is a mixture of the bias and the variance of the model, we ultimately want to achieve the best Mean Squared Error.
+Although the OLS estimates can be considered as unbiased when the correct parametric model is selected, in reality there can be a biased estimator with better prediction performance[ESLII]. Since the prediction error is a mixture of the bias and the variance of the model, we ultimately want to achieve the best Mean Squared Error.
 
-In Lasso and Ridge, we exploit the loss function by integrating a penalty term for each parameter estimate that is related to its absolute value. More specifically, parameter estimates that are higher in absolute value result in more loss because of their penalty term, thus leading to the need of an equilibrium between avoiding penalisation and achieving the closest fit. Consequently, the use of penalties limits the magnitude of the estimates and biases them towards 0. In other words, we try to find the correct balance of bias and variance by introducing more bias in our model in order to achieve much less variance. 
+In Lasso and Ridge, we exploit the loss function by integrating a penalty term for each parameter estimate that is related to its absolute value. More specifically, parameter estimates that are higher in absolute value result in more loss because of their penalty term, thus leading to the need of an equilibrium between avoiding penalisation and achieving the closest fit. Consequently, the use of penalties constrains the magnitude of the estimates and biases them towards 0, making them less variable. In other words, we try to find the correct balance of bias and variance by introducing a small amount of bias in exchange to much less variance. 
 
 The loss function of the regularised regression has the following form:
-$$L(\vec{\theta}) = \sum_{i=1}^n{(y_i - \vec{\theta}\cdot \vec{x_i})} + \lambda \cdot r(\vec{\theta})$$
+$$L(\vec{\theta}) = \sum_{i=1}^n{[y_i - (\theta_0 + \vec{\theta}\cdot \vec{x_i})]^2} + \lambda \cdot r(\vec{\theta}), ~~~~~\vec{\theta}=(\theta_1,\theta_2,...,\theta_p), ~~\theta_0: intercept$$
 , where the sum is the Residual Sum of Squares, $r(\vec{\theta})$ is the penalty function of the regression parameters and $\lambda$ is a hyperparameter called _regularisation parameter_ that adjusts the weight of the penalty in the overall loss.
 
-The difference between the two regularised regression methods is in their penalty function. Ridge regression uses the squared $L_2-norm$ of the parameters' vector, while Lasso uses the $L_1-norm$. This small difference results in a different behaviour.
+The difference between the two regularised regression methods is in their penalty function:
 
-```{r}
-theta <- seq(-4,4,length=100)
-plot(c(-4,4),c(-1,17), type = "n", xlab=expression(theta), ylab="Penalty")
-lines(theta,abs(theta), lty=1, col = 1)
-lines(theta,theta^2, lty=2, col = 2)
-legend("top", legend=c("Lasso", "Ridge"), col = c(1,2), lty=c(1,2))
-```
+* Ridge regression uses the squared $L_2-norm$, $r(\vec{\theta})=\sum_{j=1}^p{\theta_j^2}$, of the parameters' vector, while 
+* Lasso uses the $L_1-norm$, $r(\vec{\theta})=\sum_{j=1}^p{\lvert \theta_j \rvert}$. 
 
+This small difference results in a different behaviour. As $\lambda$ increases, Ridge regression will start applying a significant penalty on the parameters, forcing them towards 0. However, as mentioned in [An Introduction to Statistical Learning], unless $\lambda$ is extremely large ($\lambda \to \infty$), Ridge will never actually remove any of the predictors in the model(compute a 0 coefficient estimate). On the other hand, Lasso is able to draw some of the coefficients exactly to 0 when $\lambda$ is sufficiently large and, therefore, it can be considered as a biased regression method that can perform both coefficient penalisation and continuous variable selection. For that reason, we can see Ridge regression as a smoothing technique that removes model variability, while Lasso can be used for performing flexible variable selection.
 
-Shrinkage, penalty, Bias
-
-Application similar to the one described in book [An Introduction to Statistical Learning]
+According to the above perspective, we wish to apply Ridge regression on the best subset model [4.2.1](#VSModel) to assess whether a reduction in variance can lead to improvement, meaning an even lower $\hat{MSPE}$. Additionally, we would like to try Lasso on the full model to check if the resulting variable selection demonstrates greater performance that the best-subset method. 
 
 
 ```{r LambdaCVFunction}
@@ -709,7 +698,8 @@ RR_findLambdaCV <- function(f, alpha, lambdas, dataset, splits) {
 }
 ```
 
-```{r, eval = FALSE}
+```{r}
+# folds vector represents our split of the training data into 5 folds
 folds <- numeric(450)
 for(i in 1:450) {
   for(j in seq_along(splits)){
@@ -719,37 +709,70 @@ for(i in 1:450) {
     }
   }
 }
-lambdas = seq(1000000, 0.01, length=8000)
-X <- model.matrix(formula(price ~ bath*precip), data=trainingSet)[,-1]
-cvfit <- cv.glmnet(X, trainingSet$price, alpha=0, nfolds=5, type.measure="mse", foldid=folds, lambda=lambdas)
+
+lambdaGrid <- 10^seq(16, -2, length=100000)
+```
+
+```{r FindLambdaCVRidge}
+#findLambda_res <- RR_findLambdaCV(price ~ precip*bath, alpha=0, lambdas=lambdaGrid, dataset=trainingSet, splits=splits)
+#findLambda_res$lambdas[which.min(findLambda_res$MSPE)]
+#min(findLambda_res$MSPE)
+
+f <- formula(price ~ precip*bath)
+X <- model.matrix(f, data=trainingSet)[,-1]
+cvfitRidge <- cv.glmnet(X, trainingSet$price, alpha=0, nfolds=5, type.measure="mse", foldid=folds, thresh=1e-12, maxit=10^8, lambda = lambdaGrid)
+
+cvfitRidge$lambda.min
+cvfitRidge$lambda.1se
+cvfitRidge$cvm[cvfitRidge$lambda==cvfitRidge$lambda.1se]
+```
+
+However, before we apply either Ridge or Lasso, it is important to tune the hyperparameter $\lambda$ in both cases. In order to maintain the fairness of the results, we perform 5-fold CV using the same 5 folds we used in best-subset selection. Similarly to the idea proposed in [An Introduction to Statistical Learning], we calculate the cross-validated average $\hat{MSPE}$ on a grid of $\lambda=10^i$, where i takes 100000 equidistant values from -2 to 16. 
+
+For Ridge on the best-subset model [4.2.1](#VSModel), we obtain the smallest $\hat{MSPE} =$ `r min(cvfitRidge$cvm)` when $\lambda =$ `r cvfitRidge$lambda.min`, which is indeed better than the $\hat{MSPE}$ obtained from simply performing best-subset selection. 
+
+```{r, fig.align='center', out.width="60%"}
+plot(c(10^-2, 600), c(min(cvfitRidge$cvm)-10^5, max(cvfitRidge$cvm[cvfitRidge$lambda <= 600])), type="n")
+lines(cvfitRidge$lambda, cvfitRidge$cvm)
+abline(v=cvfitRidge$lambda.min, col="red", lty=2)
+```
+
+
+
+```{r, eval = FALSE}
+X <- model.matrix(formula(price ~ precip*bath + dist_am1*parking + dist_am2 + dist_am3 + sqft + elevation), data=trainingSet)[,-1]
+cvfit <- cv.glmnet(X, trainingSet$price, alpha=1, nfolds=5, type.measure="mse", foldid=folds, thresh=1e-12, maxit=10^8, lambda = lambdaGrid)
 cvfit$lambda.min
 min(cvfit$cvm)
-coef(cvfit)[,cvfit$lambda == cvfit$lambda.min]
+calculateMSPECV(c("bath*precip", "parking", "sqft"), trainingSet, "price", splits)
+
+coef(cvfit)
+
+ordered_lambdas <-  cvfit$lambda[order(cvfit$cvm, decreasing=TRUE)]
+ordered_cverrors <- sort(cvfit$cvm, decreasing = TRUE)
+
+ordered_lambdas[ordered_cverrors <= cvfit$cvm[cvfit$lambda == cvfit$lambda.min] + cvfit$cvsd[cvfit$lambda == cvfit$lambda.min]][1]
+
+cvfit$lambda.1se
+coef(glmnet(X, trainingSet$price, alpha=1, lambda=cvfit$lambda.1se, maxit=10^8, thresh=1e-12))
 ```
 
-```{r FindLambdaCV}
-lambdas <- 10^seq(20, -2, length=10000)
-findLambda_res <- RR_findLambdaCV(price ~ precip*bath, alpha=0, lambdas, trainingSet, splits)
-findLambda_res$lambdas[which.min(findLambda_res$MSPE)]
-min(findLambda_res$MSPE)
-
-X <- model.matrix(formula(price ~ bath*precip), data=trainingSet)[,-1]
-coef(glmnet(X, trainingSet$price, family="gaussian", alpha=0, lambda=10^20, maxit = 10^8, thresh=1e-12))
-```
 
 
-```{r, eval=TRUE}
-#lambdas <- 10^seq(20, -3, length=8000)
-
-lambdas <- 10^seq(25, -2, length=10000)
+```{r, eval=FALSE}
+lambdas <- 10^seq(10, -2, length=40000)
 findLambda_res <- RR_findLambdaCV(price ~ precip*bath + dist_am1*parking + dist_am2 + dist_am3 + sqft + elevation, alpha=1, lambdas, trainingSet, splits)
 findLambda_res$lambdas[which.min(findLambda_res$MSPE)]
 
-X <- model.matrix(formula(price ~ precip*bath + dist_am1*parking + sqft + elevation), data=trainingSet)[,-1]
-coef(glmnet(X, trainingSet$price, family="gaussian", alpha=1, lambda=10^25, maxit = 10^8, thresh=1e-12))
+X <- model.matrix(formula(price ~ precip*bath + dist_am1*parking + dist_am2 + dist_am3 + sqft + elevation), data=trainingSet)[,-1]
+coef(glmnet(X, trainingSet$price, alpha=1, lambda= 214.6271, maxit=10^8, thresh=1e-12))
 
 calculateMSPECV(c("bath*precip", "dist_am1", "dist_am2", "sqft", "elevation"), trainingSet, "price", splits)
+
+plot(c(10^-2, 10^3), c(min(findLambda_res$MSPE), max(findLambda_res$MSPE)), type="n")
+lines(findLambda_res$lambdas, findLambda_res$MSPE, col = 2)
 ```
+
 
 
 
