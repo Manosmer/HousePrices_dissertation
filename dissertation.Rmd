@@ -159,11 +159,11 @@ skimr::yank(skimmed, "numeric") %>%
 
 After removing the outlier, our conclusions about the variables _"elevation"_, _"dist_am1"_, _"dist_am2"_, _"dist_am3"_ and _"precip"_ are similar to the ones we derived earlier. However, we observe a significant drop in the maximum value of _"sqft"_ along with a significant decrease in its standard deviation, which has now become relatively close to that of _"precip"_. Also, the maximum value and the standard deviation of _"price"_ incurred a large drop.
 
-The boxplots in figure \ref{fig:boxplotAllOutlierRemoval} present graphically the already discussed differences in the magnitude and the variation between the numerical variables, by gradually removing variables from plot to plot. Interestingly, the boxplots suggest that the sample distributions of all numerical variables are fairly symmetrical as we observe the median to lie almost at the middle of the IQR box and roughly equal tails at the top and the bottom. This observation is backed by the computed numerical statistics, where the median is reported to be quite close to the mean value for every numerical variable. **A closer view using histograms in figure \ref{fig:histogramsAllOutlierRemoval} reveals that the sample distribution of all numerical variables in the data resembles that of a sample coming from a Normal Distribution.**
+The boxplots in figure \ref{fig:boxplotAllOutlierRemoval} present graphically the already discussed differences in the magnitude and the variation between the numerical variables, by gradually removing variables from plot to plot. **A closer view using histograms in figure \ref{fig:histogramsAllOutlierRemoval} reveals that the sample distribution of all numerical variables in the data resembles that of a sample coming from a Normal Distribution.**
 
 
 
-```{r boxdata, fig.align='center', out.width=".49\\linewidth", fig.width=3, fig.height=3, fig.show='hold', fig.cap="\\label{fig:boxplotAllOutlierRemoval} Boxplots on all numerical variables without the extreme outlier."}
+```{r boxdata, fig.align='center', out.width=".49\\linewidth", fig.width=2, fig.height=2, fig.show='hold', fig.cap="\\label{fig:boxplotAllOutlierRemoval} Boxplots on all numerical variables without the extreme outlier."}
 
 houseprices %>%
   select(-bath, -parking) %>%
@@ -196,10 +196,6 @@ houseprices %>%
 numericalVariables<- houseprices %>%
                       select(-bath, -parking)
 
-# for(colname in colnames(numericalVariables)) {
-#   hist(numericalVariables[[colname]], breaks = 80,
-#       xlab = colname, main = NULL)
-# }
 
 numericalVariables %>%
   ggplot(aes(x = price)) + geom_histogram(bins = 100) + geom_vline(xintercept = mean(numericalVariables$price), colour="red", lty = 2)
@@ -231,7 +227,13 @@ The primary objective of this paper is to create the most accurate predictive mo
 
 ### Numerical explanatory variables
 
-Figure \ref{fig:scatterPriceAll} depicts the relationships of _"price"_ against all the rest numerical variables in the form of scatterplots with a simple linear regression line superimposed. From the scatterplots, we observe a random scattering of the data points across all values with no obvious patterns suggesting that there is little association between _"price"_ and any one of the other numerical variables. Additionally, the small slope of the superimposed regression lines along with the little correlation revealed in table \ref{tab:corrplot} show that there is no linear relationship between any of the numerical variables and _"price"_. However, we observe a high correlation between _"dist_am3"_/_"dist_am1"_ and a moderate correlation between _"dist_am1"_/_"dist_am2"_ and _"dist_am2"_/_"dist_am3"_ indicating that there is possibly multicollinearity between the distance variables.
+Figure \ref{fig:scatterPriceAll} depicts the relationships of _"price"_ against all the rest numerical variables in the form of scatterplots with a simple linear regression line superimposed. From the scatterplots, we observe a random scattering of the data points across all values with no obvious patterns suggesting that there is little association between _"price"_ and any one of the other numerical variables. Additionally, the small slope of the superimposed regression lines along with the little correlation revealed in table \ref{tab:corrplot} show that there is no linear relationship between any of the numerical variables and _"price"_. However, we observe a high correlation between _"dist\_am3"_ - _"dist\_am1"_ and a moderate correlation between _"dist\_am1"_ - _"dist\_am2"_ and _"dist\_am2"_ - _"dist\_am3"_ indicating that there is possibly multicollinearity between the distance variables. 
+
+A more detailed investigation on multicollinearity can be conducted by fitting linear regression models using each one of the distance variables as the response each time. The values of $R_{(adj)}^2$ reveal that we can explain 72.06% of the variability in _"dist\_am3"_ using the other two variables. Moreover, when we treat any of the other two variables as our response and modelling it with the other two, _"dist\_am3"_ is almost solely responsible for observing a high $R_{(adj)}^2$ value. In fact, when we use just _"dist\_am2"_ to model _"dist\_am1"_ we can explain just 19.09% of its variability in contrast to 63.16% when we use just _"dist\_am3"_.
+
+In terms of _"price"_, the $R^2$ score from using just _"dist\_am3"_, although very small, is better than when using _"dist\_am1"_ and _"dist\_am2"_, together or alone. Interestingly though, the p-value for the coefficient estimate of _"dist\_am3"_ is smaller than the 5% significance level we chose to use in this paper. This suggests that there is a statistically significant relationship between _"dist\_am3"_ and our response variable, however, _"dist\_am3"_ accounts for a small percentage of the total variability in _"price"_.
+
+Finally we note that, before we decide on removing any of the distance variables in order to overcome multicollinearity, it is important to assess their relationship to _"price"_ through their interactions with the categorical variables in the data. The exploration of interactions is presented in a following subsection.
 
 
 ```{r, fig.align='center', out.width="0.49\\linewidth", fig.show='hold', fig.width=2, fig.height=2, fig.cap="\\label{fig:scatterPriceAll} Scatterplots of 'price' against all the rest numerical variables. The simple linear regression line is superimposed on the plots."}
@@ -472,9 +474,9 @@ calculateMSPECV <- function(variableVector, dataset, responseVar, splits) {
 
 
 ```{r}
-model_variables <- c("bath", "parking", "precip*bath", "dist_am1*parking", "dist_am2", "dist_am3", "sqft", "elevation")
+fullmodel_variables <- c("bath", "parking", "precip*bath", "dist_am3*parking", "sqft", "elevation")
 
-fullModel <- lm( paste("price", joinVariables( model_variables ), sep=" ~ "), data=trainingSet)
+fullModel <- lm( paste("price", joinVariables( fullmodel_variables ), sep=" ~ "), data=trainingSet)
 
 TSS <- sum( (trainingSet$price - mean(trainingSet$price))^2 )
 full_model_RSS <- sum( (trainingSet$price - fullModel$fitted.values)^2 )
@@ -483,7 +485,7 @@ get_regression_table(fullModel) %>%
   select(term, estimate, p_value, lower_ci, upper_ci) %>%
   kable(caption = "\\label{tab:FullModelFit} The estimated regression coefficients along with the corresponding p-values and 95% Confidence Intervals from fitting the full model on the training set.")
 
-fullModelAverageMSPE <- calculateMSPECV(model_variables, trainingSet, "price", splits)
+fullModelAverageMSPE <- calculateMSPECV(fullmodel_variables, trainingSet, "price", splits)
 ```
 
 Lastly, we can calculate the average Mean Squared Prediction Error of the full model via 5-fold cross-validation, which is equal to $\hat{MSPE}=$ `r fullModelAverageMSPE`. This metric will be used for performing variable selection as described in the following subsection.
@@ -582,10 +584,8 @@ In simple words, we decrease the overall complexity of our model by gradually re
 
 
 ```{r variableSelection}
-model_variables <- c("bath", "parking", "precip*bath", "dist_am1*parking", "dist_am2", "dist_am3", "sqft", "elevation")
-
 # perform K-fold cross-validation
-variablesSelectionResults <- selectVariablesCV(model_variables, trainingSet, "price", splits)
+variablesSelectionResults <- selectVariablesCV(fullmodel_variables, trainingSet, "price", splits)
 
 # table of VarSel. first row contains full model MSPE
 selectionTable <- c("full model", fullModelAverageMSPE)
@@ -715,7 +715,7 @@ lambdaGrid <- 10^seq(16, -3, length=20000)
 ```
 
 
-However, before we apply either Ridge or Lasso, it is important to tune the hyperparameter $\lambda$ in both cases. In order to maintain the fairness of the results, we perform 5-fold CV using the same 5 folds we used in best-subset selection. Similarly to the approach presented in [An Introduction to Statistical Learning], we calculate the cross-validated average $\hat{MSPE}$ on a grid of $\lambda=10^i$, where i takes 40000 equidistant values from -3 to 16. Then, we select the value of $\lambda$ that yielded the smallest $\hat{MSPE}$.
+However, before we apply either Ridge or Lasso, it is important to tune the hyperparameter $\lambda$ in both cases. In order to ensure the fairness of the results, we perform 5-fold CV on the same 5 folds we used in best-subset selection. Similarly to the approach presented in [An Introduction to Statistical Learning], we calculate the cross-validated average $\hat{MSPE}$ on a grid of $\lambda=10^i$, where i takes 40000 equidistant values from -3 to 16. Then, we select the value of $\lambda$ that yielded the smallest $\hat{MSPE}$.
 
 
 ```{r FindLambdaCVRidge}
@@ -728,7 +728,7 @@ X <- model.matrix(f, data=trainingSet)[,-1]
 cvfitRidge <- cv.glmnet(X, trainingSet$price, alpha=0, nfolds=length(splits), type.measure="mse", foldid=folds, thresh=1e-12, maxit=10^8, lambda = lambdaGrid)
 ```
 
-For Ridge on the best-subset model [4.2.1](#VSModel), we obtain the smallest $\hat{MSPE} =$ `r min(cvfitRidge$cvm)` when $\lambda =$ `r cvfitRidge$lambda.min`, which is indeed better than the $\hat{MSPE}$ obtained from simply performing best-subset selection. The left plot in figure \ref{fig:chooseLambda} shows the change in the estimated $\hat{MSPE}$ as we gradually depart from the OLS results($\lambda \to 0$) by increasing $\lambda$. Although there is a dip shown in the plot, this dip is not prominent and the relative difference in the cross-validated $\hat{MSPE}$ between the best-subset model before and after Ridge is only $\frac{\hat{MSPE_{bestSubset}} - \hat{MSPE_{Ridge}}}{\hat{MSPE_{bestSubset}}} \times 100 =$ `r 100*(calculateMSPECV(variablesSelectionResults$bestModel, trainingSet, "price", splits) - min(cvfitRidge$cvm))/calculateMSPECV(variablesSelectionResults$bestModel, trainingSet, "price", splits)` $\%$. This suggests that the Ridge regression has only a small effect on model [4.2.1](#VSModel) and that the least squares solution seems already adequate.
+For Ridge on the best-subset model [4.2.1](#VSModel), we obtain the smallest $\hat{MSPE} =$ `r min(cvfitRidge$cvm)` when $\lambda =$ `r cvfitRidge$lambda.min`, which is indeed better than the $\hat{MSPE}$ obtained from simply performing best-subset selection. The left plot in figure \ref{fig:chooseLambda} shows the change in the estimated $\hat{MSPE}$ as we gradually depart from the OLS results(that is, when $\lambda \to 0$) by increasing $\lambda$. Although there is a dip shown in the plot, this dip is not prominent and the relative difference in the cross-validated $\hat{MSPE}$ between the best-subset model before and after Ridge is only $\frac{\hat{MSPE_{bestSubset}} - \hat{MSPE_{Ridge}}}{\hat{MSPE_{bestSubset}}} \times 100 =$ `r 100*(calculateMSPECV(variablesSelectionResults$bestModel, trainingSet, "price", splits) - min(cvfitRidge$cvm))/calculateMSPECV(variablesSelectionResults$bestModel, trainingSet, "price", splits)` $\%$. This suggests that the Ridge regression has only a small effect on model [4.2.1](#VSModel) and that the least squares solution seems already adequate.
 
 ```{r, FindLambdaCVLasso}
 f <- formula(price ~ precip*bath + dist_am1*parking + dist_am2 + dist_am3 + sqft + elevation)
