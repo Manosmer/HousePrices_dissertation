@@ -1,7 +1,7 @@
 ---
 title: "Dissertation on Housing Market Analysis"
 subtitle: "Best Possible Regression"
-author: "Emmanouil Mertzianis"
+author: "Emmanouil Mertzianis, Student ID: 2600474"
 date: "10/10/2021"
 output:
   pdf_document:
@@ -12,7 +12,7 @@ output:
     toc_depth: 2
     includes:
       in_header: my_header.tex
-fontsize: 10pt
+fontsize: 12pt
 bibliography: references.bib
 ---
 
@@ -35,6 +35,7 @@ library(corrplot)
 
 \newpage
 
+
 # Introduction {#Intro}
 
 
@@ -43,11 +44,6 @@ library(corrplot)
 ## The purpose of the paper
 
 ## The structure of the paper
-~~ TODO ~~
-
-
-
-# Literature {#lit}
 ~~ TODO ~~
 
 
@@ -63,10 +59,10 @@ Before we start searching for the best regression model through formal data anal
 
 
 ## Exploring variables individually
-```{r skimdata}
+```{r skimdata, }
 skimmed <- houseprices %>% 
   skimr::skim() %>%
-  skimr::focus("# missing"=n_missing, "Unique lvls"=factor.n_unique, Mean=numeric.mean, "SD"=numeric.sd, Min=numeric.p0, "25%"=numeric.p25, Median=numeric.p50, "75%"=numeric.p75, Max=numeric.p100)
+  skimr::focus("Unique lvls"=factor.n_unique, Mean=numeric.mean, "SD"=numeric.sd, Min=numeric.p0, "25%"=numeric.p25, Median=numeric.p50, "75%"=numeric.p75, Max=numeric.p100)
 
 
 # counts for the categorical variables
@@ -148,7 +144,7 @@ houseprices$bath <- as.factor(as.character(houseprices$bath))
 ```{r skimOutlierRemoved}
 skimmed <- houseprices %>% 
   skimr::skim() %>%
-  skimr::focus("# missing"=n_missing, Mean=numeric.mean, "SD"=numeric.sd, Min=numeric.p0, "25%"=numeric.p25, Median=numeric.p50, "75%"=numeric.p75, Max=numeric.p100)
+  skimr::focus(Mean=numeric.mean, "SD"=numeric.sd, Min=numeric.p0, "25%"=numeric.p25, Median=numeric.p50, "75%"=numeric.p75, Max=numeric.p100)
 
 # Numerics table
 skimr::yank(skimmed, "numeric") %>%
@@ -191,32 +187,39 @@ houseprices %>%
 ```
 
 
-```{r histograms, fig.align='center', out.width=".49\\linewidth", fig.width=2, fig.height=2, fig.show='hold', fig.cap="\\label{fig:histogramsAllOutlierRemoval} Histograms on all numerical variables without the extreme outlier. The red dashed line represents the mean value of the variable's values."}
+```{r histograms, fig.align='center', out.width=".49\\linewidth", fig.width=1.5, fig.height=1.5, fig.show='hold', fig.cap="\\label{fig:histogramsAllOutlierRemoval} Histograms on all numerical variables without the extreme outlier. The red dashed line represents the sample mean of each variable."}
 
 numericalVariables<- houseprices %>%
                       select(-bath, -parking)
 
 
 numericalVariables %>%
-  ggplot(aes(x = price)) + geom_histogram(bins = 100) + geom_vline(xintercept = mean(numericalVariables$price), colour="red", lty = 2)
+  ggplot(aes(x = price)) + geom_histogram(bins = 100) + geom_vline(xintercept = mean(numericalVariables$price), colour="red", lty = 2) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 numericalVariables %>%
-  ggplot(aes(x = sqft)) + geom_histogram(bins = 80) + geom_vline(xintercept = mean(numericalVariables$sqft), colour="red", lty = 2)
+  ggplot(aes(x = sqft)) + geom_histogram(bins = 80) + geom_vline(xintercept = mean(numericalVariables$sqft), colour="red", lty = 2) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 numericalVariables %>%
-  ggplot(aes(x = elevation)) + geom_histogram(bins = 80) + geom_vline(xintercept = mean(numericalVariables$elevation), colour="red", lty = 2)
+  ggplot(aes(x = elevation)) + geom_histogram(bins = 80) + geom_vline(xintercept = mean(numericalVariables$elevation), colour="red", lty = 2) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 numericalVariables %>%
-  ggplot(aes(x = precip)) + geom_histogram(bins = 80) + geom_vline(xintercept = mean(numericalVariables$precip), colour="red", lty = 2)
+  ggplot(aes(x = precip)) + geom_histogram(bins = 80) + geom_vline(xintercept = mean(numericalVariables$precip), colour="red", lty = 2) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 numericalVariables %>%
-  ggplot(aes(x = dist_am1)) + geom_histogram(bins = 80) + geom_vline(xintercept = mean(numericalVariables$dist_am1), colour="red", lty = 2)
+  ggplot(aes(x = dist_am1)) + geom_histogram(bins = 80) + geom_vline(xintercept = mean(numericalVariables$dist_am1), colour="red", lty = 2) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 numericalVariables %>%
-  ggplot(aes(x = dist_am2)) + geom_histogram(bins = 80) + geom_vline(xintercept = mean(numericalVariables$dist_am2), colour="red", lty = 2)
+  ggplot(aes(x = dist_am2)) + geom_histogram(bins = 80) + geom_vline(xintercept = mean(numericalVariables$dist_am2), colour="red", lty = 2) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 numericalVariables %>%
-  ggplot(aes(x = dist_am3)) + geom_histogram(bins = 80) + geom_vline(xintercept = mean(numericalVariables$dist_am3), colour="red", lty = 2)
+  ggplot(aes(x = dist_am3)) + geom_histogram(bins = 80) + geom_vline(xintercept = mean(numericalVariables$dist_am3), colour="red", lty = 2) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 ```
 
@@ -229,7 +232,7 @@ The primary objective of this paper is to create the most accurate predictive mo
 
 Figure \ref{fig:scatterPriceAll} depicts the relationships of _"price"_ against all the rest numerical variables in the form of scatterplots with a simple linear regression line superimposed. From the scatterplots, we observe a random scattering of the data points across all values with no obvious patterns suggesting that there is little association between _"price"_ and any one of the other numerical variables. Additionally, the small slope of the superimposed regression lines along with the little correlation revealed in table \ref{tab:corrplot} show that there is no linear relationship between any of the numerical variables and _"price"_. However, we observe a high correlation between _"dist\_am3"_ - _"dist\_am1"_ and a moderate correlation between _"dist\_am1"_ - _"dist\_am2"_ and _"dist\_am2"_ - _"dist\_am3"_ indicating that there is possibly multicollinearity between the distance variables. 
 
-A more detailed investigation on multicollinearity can be conducted by fitting linear regression models using each one of the distance variables as the response each time. The values of $R_{(adj)}^2$ reveal that we can explain 72.08% of the variability in _"dist\_am3"_ using the other two variables. Moreover, when we treat any of the other two variables as our response and modelling it with the other two, _"dist\_am3"_ is almost solely responsible for observing a high $R_{(adj)}^2$ value. In fact, when we use just _"dist\_am2"_ to model _"dist\_am1"_ we can explain just 19.26% of its variability in contrast to 63.27% when we use just _"dist\_am3"_.
+A more detailed investigation on multicollinearity can be conducted by fitting linear regression models using each one of the distance variables as the response each time. The values of $R_{(adj)}^2$ reveal that we can explain 72.08% of the variability in _"dist\_am3"_ using the other two distance variables. Moreover, when we treat any of the other two variables as our response and modelling it with the other two, _"dist\_am3"_ is almost solely responsible for observing a high $R_{(adj)}^2$ value. In fact, when we use just _"dist\_am2"_ to model _"dist\_am1"_ we can explain just 19.26% of its variability in contrast to 63.27% when we use just _"dist\_am3"_.
 
 In terms of _"price"_, the $R^2$ score from using just _"dist\_am3"_, **although very small**, is better than the one we obtain from using _"dist\_am1"_ and _"dist\_am2"_, together or alone. Also, the p-value for the coefficient estimate of _"dist\_am3"_ is 0.0502, which is very close to the 5% significance level we chose to use in this paper.
 
@@ -292,7 +295,7 @@ houseprices %>%
 ```
 
 
-```{r, fig.align='center', out.width="70%", fig.cap="\\label{fig:histPricebyBath} Histogram of 'price' coloured by 'bath'."}
+```{r, fig.align='center', out.width="50%", fig.cap="\\label{fig:histPricebyBath} Histogram of 'price' coloured by 'bath'."}
 ggplot(data=houseprices, mapping = aes(x=price, fill=bath)) +
   geom_histogram(bins=100)
 ```
@@ -315,9 +318,24 @@ When we assess the same relationships under each category of _"parking"_, it can
 
 However, it appears that in the relationship of _"price"_ and _"dist\_am1"_ there is a significant difference in the coefficient estimate of _dist\_am1_ between the _"parking"_ categories "Covered"(baseline category) and "No Parking" and a significantly large p-value for the difference in the coefficient estimate between "Covered" and "Not Provided". This can be seen from both the slopes of the simple linear regression lines in figure \ref{fig:distAm1} and table \ref{tab:distam1ParkingFit}. Therefore, it is important to study formally the possible interaction of _"dist\_am1"_ and _"parking"_. 
 
-Continuing with the results about multicollinearity in subsection \ref{EDA:NEV}, since the interaction between _"parking"_  and _"dist\_am1"_ demonstrates a better $R_{(adj)}^2$ score and better p-values than the interaction between _"parking"_ and _"dist\_am3"_ or when we use the two variables with no interactions, **we decide on dropping variable _"dist\_am3"_ from our models**. This decision solves the problem of multicollinearity as the remaining two distance variables have a 0.44 correlation coefficient which is rather moderate. Also, the remaining two variables can explain 72.08% of the variability in _"dist\_am3"_, which suggests that _"dist\_am3"_ is fairly represented by the other two and we do not lose that much information in the data.
+Continuing with the results about multicollinearity in subsection \ref{EDA:NEV}, the interaction between _"parking"_  and _"dist\_am1"_ demonstrates a better $R_{(adj)}^2$ score and better p-values when modelling _"price"_ than _"parking"_, _"dist\_am3"_ or the interaction between the two. Therefore, **we decide on dropping variable _"dist\_am3"_ from our models**. This decision solves the problem of multicollinearity as the remaining two distance variables have a 0.44 correlation coefficient which is rather moderate. Also, the remaining two variables can explain 72.08% of the variability in _"dist\_am3"_, which suggests that _"dist\_am3"_ is fairly represented by the other two and we do not lose that much information in the data.
 
 Finally, we note that other transformations we applied on the numerical explanatory variables and on _"price"_ did not seem to improve the relationships between them.
+
+
+```{r, fig.align='center', fig.show='hold', out.width="0.49\\linewidth", fig.width=4, fig.height=3, fig.cap="\\label{fig:distAm1} 'Price' against 'dist\\_am1' on all 'parking' levels."}
+houseprices %>%
+  ggplot( mapping = aes( y = price, x = dist_am1, colour = parking) ) + 
+  geom_point(shape = 1, size = 0.8) + 
+  geom_smooth(method = "lm", se = FALSE, lwd = .7)
+```
+
+```{r}
+get_regression_table(lm(price ~ dist_am1*parking, data=houseprices)) %>%
+  select(term, estimate, p_value, lower_ci, upper_ci) %>%
+  kable(caption="\\label{tab:distam1ParkingFit} The regression coefficient estimates, p_values and 95% C.Is from fitting the linear model with just an interaction between 'dist\\_am1' and 'parking'.")
+```
+
 
 
 ```{r, fig.align='center', out.width="0.49\\linewidth", fig.show='hold', fig.width=4, fig.height=3, fig.cap="\\label{fig:scatterPriceAllByBath} Scatterplots of 'price' against all the rest numerical variables and a simple linear regression line superimposed, coloured by 'bath'."}
@@ -350,21 +368,6 @@ houseprices %>%
   ggplot(mapping = aes(x = sqft, y = price, colour=bath)) + 
   geom_point(size = 0.8, alpha=.4, shape = 1) +
   geom_smooth(method = "lm", se = FALSE, lwd=.7)
-```
-
-
-
-```{r, fig.align='center', fig.show='hold', out.width="0.49\\linewidth", fig.width=4, fig.height=3, fig.cap="\\label{fig:distAm1} 'Price' against 'dist\\_am1' on all 'parking' levels."}
-houseprices %>%
-  ggplot( mapping = aes( y = price, x = dist_am1, colour = parking) ) + 
-  geom_point(shape = 1, size = 0.8) + 
-  geom_smooth(method = "lm", se = FALSE, lwd = .7)
-```
-
-```{r}
-get_regression_table(lm(price ~ dist_am1*parking, data=houseprices)) %>%
-  select(term, estimate, p_value, lower_ci, upper_ci) %>%
-  kable(caption="\\label{tab:distam1ParkingFit} The regression coefficient estimates, p_values and 95% C.Is from fitting the linear model with just an interaction between 'dist\\_am1' and 'parking'.")
 ```
 
 
@@ -627,10 +630,6 @@ The "Residuals vs. Fitted" plot above shows 4 distinct vertical groups of data p
 
 Finally, we observe a fairly equal scattering of the points about the 0 line across the range of the fitted values which indicates that the assumption of constant variance(homoscedasticity) is valid. One could argue that there is smaller variability observed for the residuals of the first and last column in the plot. However, it is important to consider that the data set contains remarkably fewer observations for the categories of 1 or 4 bathrooms, which might be the reason behind this seemingly different variability. 
 
-Using the "Normal Q-Q" plot, we can check the assumption of normally distributed errors. The plot exhibits a light and a heavy tail and it does not have the _ideal_ shape. However, given the fact that we are modelling real-life data, it is reasonable to think that the points follow the dashed line adequately and the assumption holds. The same can be inferred from the supplemental histogram of residuals, which resembles the bell shape of the Normal distribution but not perfectly.
-
-Lastly, we wish to look for any influential observations that we might need to discard as they could incorrectly draw the direction of the relationship towards them. Although the rest of the plots report consistently the observations "32" and "438" as possible outliers, the plot of residuals against leverage shows no observations within the contour lines of Cook's distance. Therefore, we choose not to remove any additional observations.
-
 ```{r, out.width=".49\\linewidth", fig.cap="\\label{fig:VSassumptions} Plots of the residuals from fitting model 4.2.1 on the training set.", fig.show='hold', fig.height=4, fig.width=4}
 plot(selectedModel, which=1, sub.caption="")
 plot(selectedModel, which=2, sub.caption="")
@@ -640,6 +639,11 @@ ggplot(mapping=aes(x=selectedModel$residuals)) +
   geom_histogram(bins=50) + xlab("Residuals")
 # bins 26
 ```
+
+
+Using the "Normal Q-Q" plot, we can check the assumption of normally distributed errors. The plot exhibits a light and a heavy tail and it does not have the _ideal_ shape. However, given the fact that we are modelling real-life data, it is reasonable to think that the points follow the dashed line adequately and the assumption holds. The same can be inferred from the supplemental histogram of residuals, which resembles the bell shape of the Normal distribution but not perfectly.
+
+Lastly, we wish to look for any influential observations that we might need to discard as they could incorrectly draw the direction of the relationship towards them. Although the rest of the plots report consistently the observations "32" and "438" as possible outliers, the plot of residuals against leverage shows no observations within the contour lines of Cook's distance. Therefore, we choose not to remove any additional observations.
 
 
 ## Regularised regression with Ridge and Lasso
@@ -731,10 +735,7 @@ LassoVMTable %>%
 
 TODO: Change lambda grid from 20000 to 40000
 
-# Conclusions
-~~ TODO ~~
-
-# Further Work
+# Conclusions and Further Work
 1. More variables
 2. Go beyond regression models:
 
