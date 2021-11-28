@@ -225,15 +225,15 @@ numericalVariables %>%
 The primary objective of this paper is to create the most accurate predictive model about _"price"_ using the rest of the available variables in the data. Therefore, it is of interest to explore the relationships of _"price"_ against the other variables. For this purpose, we first explore the relationships of _"price"_ against all other numerical variables and, then, we focus on the categorical variables. Finally, we analyse the relationships of _"price"_ against the numerical variables on different levels of the categorical variables.
 
 
-### Numerical explanatory variables
+### Numerical explanatory variables {#EDA:NEV}
 
 Figure \ref{fig:scatterPriceAll} depicts the relationships of _"price"_ against all the rest numerical variables in the form of scatterplots with a simple linear regression line superimposed. From the scatterplots, we observe a random scattering of the data points across all values with no obvious patterns suggesting that there is little association between _"price"_ and any one of the other numerical variables. Additionally, the small slope of the superimposed regression lines along with the little correlation revealed in table \ref{tab:corrplot} show that there is no linear relationship between any of the numerical variables and _"price"_. However, we observe a high correlation between _"dist\_am3"_ - _"dist\_am1"_ and a moderate correlation between _"dist\_am1"_ - _"dist\_am2"_ and _"dist\_am2"_ - _"dist\_am3"_ indicating that there is possibly multicollinearity between the distance variables. 
 
-A more detailed investigation on multicollinearity can be conducted by fitting linear regression models using each one of the distance variables as the response each time. The values of $R_{(adj)}^2$ reveal that we can explain 72.06% of the variability in _"dist\_am3"_ using the other two variables. Moreover, when we treat any of the other two variables as our response and modelling it with the other two, _"dist\_am3"_ is almost solely responsible for observing a high $R_{(adj)}^2$ value. In fact, when we use just _"dist\_am2"_ to model _"dist\_am1"_ we can explain just 19.09% of its variability in contrast to 63.16% when we use just _"dist\_am3"_.
+A more detailed investigation on multicollinearity can be conducted by fitting linear regression models using each one of the distance variables as the response each time. The values of $R_{(adj)}^2$ reveal that we can explain 72.08% of the variability in _"dist\_am3"_ using the other two variables. Moreover, when we treat any of the other two variables as our response and modelling it with the other two, _"dist\_am3"_ is almost solely responsible for observing a high $R_{(adj)}^2$ value. In fact, when we use just _"dist\_am2"_ to model _"dist\_am1"_ we can explain just 19.26% of its variability in contrast to 63.27% when we use just _"dist\_am3"_.
 
-In terms of _"price"_, the $R^2$ score from using just _"dist\_am3"_, although very small, is better than when using _"dist\_am1"_ and _"dist\_am2"_, together or alone. Interestingly though, the p-value for the coefficient estimate of _"dist\_am3"_ is smaller than the 5% significance level we chose to use in this paper. This suggests that there is a statistically significant relationship between _"dist\_am3"_ and our response variable, however, _"dist\_am3"_ accounts for a small percentage of the total variability in _"price"_.
+In terms of _"price"_, the $R^2$ score from using just _"dist\_am3"_, **although very small**, is better than the one we obtain from using _"dist\_am1"_ and _"dist\_am2"_, together or alone. Also, the p-value for the coefficient estimate of _"dist\_am3"_ is 0.0502, which is very close to the 5% significance level we chose to use in this paper.
 
-Finally we note that, before we decide on removing any of the distance variables in order to overcome multicollinearity, it is important to assess their relationship to _"price"_ through their interactions with the categorical variables in the data. The exploration of interactions is presented in a following subsection.
+Finally we note that, before we decide on removing any of the distance variables in order to overcome multicollinearity, it is important to assess their relationship to _"price"_ from their interactions with the categorical variables in the data. The exploration of interactions is presented in subsection \ref{EDA:Inter}.
 
 
 ```{r, fig.align='center', out.width="0.49\\linewidth", fig.show='hold', fig.width=2, fig.height=2, fig.cap="\\label{fig:scatterPriceAll} Scatterplots of 'price' against all the rest numerical variables. The simple linear regression line is superimposed on the plots."}
@@ -298,11 +298,11 @@ ggplot(data=houseprices, mapping = aes(x=price, fill=bath)) +
 ```
 
 
-### Interactions
+### Interactions {#EDA:Inter}
 
 Finally, it is important to investigate any interactions between categorical and numerical explanatory variables. Figure \ref{fig:scatterPriceAllByBath} shows the relationship of each numerical variable with _"price"_, on each _"bath"_ level, in the form of scatterplots with simple regression lines superimposed. On all plots, we observe four distinct layers of data corresponding to each _"bath"_ level. As we have already explained, these layers correspond to the full partitioning of the sample distribution of _"price"_ into four non-overlapping chunks when considering the variable _"bath"_. It is apparent that, regardless of the _"bath"_ category they belong to, the observations in the data extend fairly across the whole range of values on all numerical explanatory variables. 
 
-Excluding _"precip"_, the nature of the relationship between the rest of the explanatory variables and _"price"_ is roughly the same on each level of _"bath"_ and the relationships do not seem to improve for any of the variables when we take _"bath"_ into consideration (as seen from the scatterplots and the high p-values). In the case of the relationship between _"precip"_ and _"price"_, we observe a slightly positive trend on all levels except for the houses with one bathroom, where the relationship becomes negative. Therefore, the aforementioned relationship seems to improve and become important when considered under each _"bath"_ category. This fact is further supported by the p-values shown in table \ref{tab:precipBathFit} which are either close to the chosen 5% significance level or below it.
+Apart from _"precip"_, the nature of the relationship between the rest of the explanatory variables and _"price"_ is roughly the same on each level of _"bath"_ and the relationships do not seem to improve for any of the variables when we take _"bath"_ into consideration (as seen from figure \ref{fig:scatterPriceAllByBath} and the high p-values). In the case of the relationship between _"precip"_ and _"price"_, we observe a slightly positive trend on all levels of _"bath"_ except for the houses with one bathroom, where the relationship becomes negative. Therefore, the aforementioned relationship seems to improve and become important when considered under each _"bath"_ category. This fact is further supported by the p-values shown in table \ref{tab:precipBathFit} which are either close to the chosen 5% significance level or below it.
 
 ```{r}
 get_regression_table(lm(price ~ precip*bath, data=houseprices)) %>%
@@ -313,8 +313,9 @@ get_regression_table(lm(price ~ precip*bath, data=houseprices)) %>%
 
 When we assess the same relationships under each category of _"parking"_, it can be shown that there is an almost complete overlap between the layers of data of the different _"parking"_ levels, with a random scattering of the data points and the p-values on those relationships are fairly large. This suggests that the single regression line model should be suitable for each relationship with _"price"_, with no difference in the slopes or the intercept terms among the categories (i.e. no interaction with _"parking"_). 
 
-However, it appears that in the relationship of _"price"_ and _"dist\_am1"_ there is a significant difference in the slope of the simple linear regression lines among the _"parking"_ categories "Covered" and "No Parking" and a significantly large p-value for the slopes in the categories "Covered" and "Not Provided". This can be seen from both the figure \ref{fig:distAm1} and the table \ref{tab:distam1ParkingFit}. Therefore, it is important to study formally the possible interaction of _"dist\_am1"_ and _"parking"_. 
+However, it appears that in the relationship of _"price"_ and _"dist\_am1"_ there is a significant difference in the coefficient estimate of _dist\_am1_ between the _"parking"_ categories "Covered"(baseline category) and "No Parking" and a significantly large p-value for the difference in the coefficient estimate between "Covered" and "Not Provided". This can be seen from both the slopes of the simple linear regression lines in figure \ref{fig:distAm1} and table \ref{tab:distam1ParkingFit}. Therefore, it is important to study formally the possible interaction of _"dist\_am1"_ and _"parking"_. 
 
+Continuing with the results about multicollinearity in subsection \ref{EDA:NEV}, since the interaction between _"parking"_  and _"dist\_am1"_ demonstrates a better $R_{(adj)}^2$ score and better p-values than the interaction between _"parking"_ and _"dist\_am3"_ or when we use the two variables with no interactions, **we decide on dropping variable _"dist\_am3"_ from our models**. This decision solves the problem of multicollinearity as the remaining two distance variables have a 0.44 correlation coefficient which is rather moderate. Also, the remaining two variables can explain 72.08% of the variability in _"dist\_am3"_, which suggests that _"dist\_am3"_ is fairly represented by the other two and we do not lose that much information in the data.
 
 Finally, we note that other transformations we applied on the numerical explanatory variables and on _"price"_ did not seem to improve the relationships between them.
 
@@ -416,14 +417,14 @@ Finally, we will consider moving beyond the Ordinary Least Squares method by smo
 
 
 ## Fitting the full model
-In section \ref{EDA}, we discussed about the different available variables in our data and we explored numerically and graphically the relationships between them and especially with _"price"_. Based on our findings, we select as our starting model the linear, additive model on the original variables, including interactions between _"precip"_ - _"bath"_ and _"dist\_am1"_ - _"parking"_. Therefore, we assume the true relationship is:
+In section \ref{EDA}, we discussed about the different available variables in our data and we explored numerically and graphically the relationships between them and especially with _"price"_. Based on our findings, we select as our starting model the linear, additive model on the original variables excluding _"dist\_am3"_ and including interactions between _"precip"_ - _"bath"_ and _"dist\_am1"_ - _"parking"_. Therefore, we assume the true relationship is:
 
 $$ price_i =  \beta_0 + \beta_1\cdot{\mathbb{I}bath|2_i} + \beta_2\cdot{\mathbb{I}bath|3_i} + \beta_3\cdot{\mathbb{I}bath|4_i} +$$
 $$\beta_4\cdot{\mathbb{I}parking|NoParking_i} + \beta_5\cdot{\mathbb{I}parking|NotProvided_i} + \beta_6\cdot{\mathbb{I}parking|Open_i} +$$
-$$\beta_7\cdot{sqft_i} + \beta_8\cdot{elevation_i} + \beta_{9}\cdot{dist\_am2_i} + \beta_{10}\cdot{dist\_am3_i} +$$
-$$\beta_{11}\cdot{precip_i} + \beta_{12}\cdot{\mathbb{I}bath|2_i}\cdot{precip_i} + \beta_{13}\cdot{\mathbb{I}bath|3_i}\cdot{precip_i} + \beta_{14}\cdot{\mathbb{I}bath|4_i}\cdot{precip_i} +$$
-$$\beta_{15}\cdot{dist\_am1_i} + \beta_{16}\cdot{\mathbb{I}parking|NoParking_i}\cdot{dist\_am1_i} + \beta_{17}\cdot{\mathbb{I}parking|NotProvided_i}\cdot{dist\_am1_i} +$$
-$$\beta_{18}\cdot{\mathbb{I}parking|Open_i}\cdot{dist\_am1_i}$$
+$$\beta_7\cdot{sqft_i} + \beta_8\cdot{elevation_i} + \beta_{9}\cdot{dist\_am2_i} +$$
+$$\beta_{10}\cdot{precip_i} + \beta_{11}\cdot{\mathbb{I}bath|2_i}\cdot{precip_i} + \beta_{12}\cdot{\mathbb{I}bath|3_i}\cdot{precip_i} + \beta_{13}\cdot{\mathbb{I}bath|4_i}\cdot{precip_i} +$$
+$$\beta_{14}\cdot{dist\_am1_i} + \beta_{15}\cdot{\mathbb{I}parking|NoParking_i}\cdot{dist\_am1_i} + \beta_{16}\cdot{\mathbb{I}parking|NotProvided_i}\cdot{dist\_am1_i} +$$
+$$\beta_{17}\cdot{\mathbb{I}parking|Open_i}\cdot{dist\_am1_i}$$
 $$+~\epsilon_i,~~~~\epsilon_i \stackrel{indep.}\sim N(0, \sigma^2), ~~~ i=1,...,450$$
 
 , where the indicator variables(starting with $\mathbb{I}$) are equal to $1$ when the $i^{th}$ observation's corresponding categorical variable takes the relevant value(separated from the variable name with "|") and $0$ otherwise. The baseline categories are **1** for _"bath"_ and **Covered** for _"parking"_.
@@ -474,7 +475,7 @@ calculateMSPECV <- function(variableVector, dataset, responseVar, splits) {
 
 
 ```{r}
-fullmodel_variables <- c("bath", "parking", "precip*bath", "dist_am3*parking", "sqft", "elevation")
+fullmodel_variables <- c("bath", "parking", "precip", "precip*bath", "dist_am1", "dist_am1*parking", "dist_am2", "sqft", "elevation")
 
 fullModel <- lm( paste("price", joinVariables( fullmodel_variables ), sep=" ~ "), data=trainingSet)
 
@@ -590,22 +591,23 @@ variablesSelectionResults <- selectVariablesCV(fullmodel_variables, trainingSet,
 # table of VarSel. first row contains full model MSPE
 selectionTable <- c("full model", fullModelAverageMSPE)
 selectionTable <- rbind(selectionTable, cbind(variablesSelectionResults$removedVariables, variablesSelectionResults$MSPEs))
+selectionTable <- selectionTable[-nrow(selectionTable),] # precip is shown as removed, but precip*bath exists in the model
 
 selectedModel <- lm(paste("price", joinVariables(variablesSelectionResults$bestModel), sep=" ~ "), data=trainingSet)
 selectedModel_RSS <- sum( (trainingSet$price - selectedModel$fitted.values)^2 )
 
 data.frame("removedVars"=selectionTable[,1], "MSPE"=selectionTable[,2]) %>%
-  kable(col.names = c("Removed variable", "average $\\hat{MSPE}$ after removal"),
+  kable(col.names = c("Removed variable", "cross-validated $\\hat{MSPE}$ after removal"),
         caption="\\label{tab:variableSelection} Results from performing variable selection via backward elimination on the full model. The left column contains the removed variables in the order of removal, while the right one shows the average $\\hat{MSPE}$ from 5-fold C.V. after the removal of the variable on the left. The full model with its average $\\hat{MSPE}$ is displayed in the first row for reference.", align="c")
 ```
 
-Table \ref{tab:variableSelection} shows the process of applying the aforementioned variable selection method on our full model. Following the order of the removals, the method decreased the complexity of the model by dropping the interaction between _"dist_am1"_ and _"parking"_, _"sqft"_, _"dist\_am3"_, _"parking"_, _"dist_am2"_ and, finally, _"elevation"_. That way, the method managed to reduce the average $\hat{MSPE}$ down to `r calculateMSPECV(variablesSelectionResults$bestModel, trainingSet, "price", splits)` from the initial, full model's value of `r fullModelAverageMSPE`. As a result, we now update our assumption about the true relationship between _"price"_ and our predictors in the population such that:
+Table \ref{tab:variableSelection} shows the process of applying the aforementioned variable selection method on our full model. Apparently, the method managed to reduce the average $\hat{MSPE}$ down to `r calculateMSPECV(variablesSelectionResults$bestModel, trainingSet, "price", splits)` from the initial, full model's value of `r fullModelAverageMSPE`. As a result, we now update our assumption about the true relationship between _"price"_ and our predictors in the population such that:
 $$ price_i =  \beta_0 + \beta_1\cdot{\mathbb{I}bath|2_i} + \beta_2\cdot{\mathbb{I}bath|3_i} + \beta_3\cdot{\mathbb{I}bath|4_i} +$$
 $$\beta_4\cdot{precip_i} + \beta_5\cdot{\mathbb{I}bath|2_i}\cdot{precip_i} + \beta_6\cdot{\mathbb{I}bath|3_i}\cdot{precip_i} + \beta_7\cdot{\mathbb{I}bath|4_i}\cdot{precip_i}$$
 $$+~\epsilon_i,~~~~\epsilon_i \stackrel{indep.}\sim N(0, \sigma^2), ~~~ i=1,...,450~~$$ 
 [(4.2.1)]{#VSModel}
 
-The results from fitting model [4.2.1](#VSModel) on the training data set is shown in table \ref{tab:varSelModel}. The reported p-values indicate that, accounting for all of the variables we used in our model, the categorical variable _"bath"_ and the interaction between precipitation and _"bath"_ seem to be significant predictors in terms of the sale price of a house. More specifically, our fitted model estimates that:
+The results from fitting model [4.2.1](#VSModel) on the training data set are shown in table \ref{tab:varSelModel}. The reported p-values indicate that, accounting for all of the variables we used in our model, the categorical variable _"bath"_ and the interaction between precipitation and _"bath"_ seem to be significant predictors in terms of the sale price of a house. More specifically, our fitted model estimates that:
 
 * **for houses with 0 precipitation**, the expected sale price of a house with just one bathroom is, on average, 288833.246. This base price increases, on average, by 98592.790, 298359.921 or 431877.270 for 2, 3 or 4 bathrooms, respectively. This gradual increase in the price as we increase the number of bathrooms combined with the non-overlapping 95% C.I. for the OLS estimates of the price differences between the _"bath"_ categories show a significant positive relationship between the two variables and agree with our findings in section \ref{EDA}.
 
@@ -616,10 +618,10 @@ It is, also, worth mentioning that $R_{(adj)}^2$, which takes the complexity of 
 ```{r}
 get_regression_table(selectedModel) %>%
   select(term, estimate, p_value, lower_ci, upper_ci) %>%
-  kable(caption="\\label{tab:varSelModel} The final model fitted on the training set after performing variable selection.")
+  kable(caption="\\label{tab:varSelModel} The final model fitted on the training set after performing best-subset selection.")
 ```
 
-However, the interpretation of model [4.2.1](#VSModel) and its application in predicting sale prices are worthless if the assumptions we made prior to fitting our model are violated. In reality, there is no formal way of checking the validity of those assumptions. However, the plots of the residuals in figure \ref{fig:VSassumptions} are commonly used in order to check the assumptions of our multiple linear regression model [4.2.1](#VSModel), as described in the book _"Linear Models with R"_ by J.J. Faraway[book]. 
+However, the interpretation of model [4.2.1](#VSModel) and its application in predicting sale prices are meaningless if the assumptions we made prior to fitting our model are violated. In reality, there is no formal way of checking the validity of those assumptions. However, the plots of the residuals in figure \ref{fig:VSassumptions} are commonly used in order to check the assumptions of our multiple linear regression model [4.2.1](#VSModel), as described in the book _"Linear Models with R"_ by J.J. Faraway[book]. 
 
 The "Residuals vs. Fitted" plot above shows 4 distinct vertical groups of data points. This behaviour is expected as our model relies heavily on the 4 disjoint _"bath"_ categories to calculate the fitted price, while precipitation plays a smaller role in explaining the remaining variability. Also, the plot depicts a random and even scattering of the data points above and below the horizontal 0 line with no obvious patterns suggesting that the assumption that the errors' mean is 0 holds and that there is no significant non-random structure left unexplained in our data. Plots of residuals against the excluded predictors further support this claim, as they show a random scattering of the data points without any obvious patterns. 
 
@@ -666,39 +668,6 @@ This small difference results in a different behaviour. As $\lambda$ increases, 
 According to the above perspective, we wish to apply Ridge regression on the best subset model [4.2.1](#VSModel) to assess whether a reduction in variance can lead to more improvement, meaning an even lower $\hat{MSPE}$. Additionally, we would like to try Lasso on the full model to check if the resulting flexible variable selection demonstrates greater performance than the discrete best-subset method. 
 
 
-```{r LambdaCVFunction}
-RR_findLambdaCV <- function(f, alpha, lambdas, dataset, splits) {
-  # find best lambda for RR using K-Fold CV
-  
-  k <- length(splits)
-  if(k <= 1) stop("Data set splits must be more than 1.")
-  
-  lambdasLength <- length(lambdas)
-  if(lambdasLength < 1) stop("Must provide 1 or more lambda values")
-  
-  responseVar <- rownames(attr(terms(f), "factors"))[attr(terms(f), "response")]
-  lambdas <- sort(lambdas, decreasing = TRUE) # glmnet suggests to provide a decreasing sequence of lambdas
-  dataSetLength <- nrow(dataset)
-  
-  MSPEs_perLambda <- numeric(lambdasLength)
-  
-  
-  for(i in 1:k) {
-    validSet <- dataset[splits[[i]], ]
-    trainSet <- dataset[ (1:dataSetLength)[ -splits[[i]] ], ]
-    
-    X <- model.matrix(f, data=trainSet)[,-1]
-    ridgeModel <- glmnet(X, trainSet[[responseVar]], family="gaussian", alpha=alpha, lambda=lambdas, maxit = 10^8, thresh=1e-12)
-    
-    MSPEs_perLambda <- MSPEs_perLambda + mean( (validSet[[responseVar]] - predict(ridgeModel, model.matrix(f, data=validSet)[,-1], exact=TRUE))^2)
-  }
-  MSPEs_perLambda <- MSPEs_perLambda / k
-  
-  return(list(lambdas=lambdas, MSPE=MSPEs_perLambda))
-}
-```
-
-
 ```{r}
 # folds vector represents our split of the training data into 5 folds
 folds <- numeric(450)
@@ -719,45 +688,48 @@ However, before we apply either Ridge or Lasso, it is important to tune the hype
 
 
 ```{r FindLambdaCVRidge}
-#findLambda_res <- RR_findLambdaCV(price ~ precip*bath, alpha=0, lambdas=lambdaGrid, dataset=trainingSet, splits=splits)
-#findLambda_res$lambdas[which.min(findLambda_res$MSPE)]
-#min(findLambda_res$MSPE)
-
 f <- formula(price ~ precip*bath)
 X <- model.matrix(f, data=trainingSet)[,-1]
 cvfitRidge <- cv.glmnet(X, trainingSet$price, alpha=0, nfolds=length(splits), type.measure="mse", foldid=folds, thresh=1e-12, maxit=10^8, lambda = lambdaGrid)
 ```
 
-For Ridge on the best-subset model [4.2.1](#VSModel), we obtain the smallest $\hat{MSPE} =$ `r min(cvfitRidge$cvm)` when $\lambda =$ `r cvfitRidge$lambda.min`, which is indeed better than the $\hat{MSPE}$ obtained from simply performing best-subset selection. The left plot in figure \ref{fig:chooseLambda} shows the change in the estimated $\hat{MSPE}$ as we gradually depart from the OLS results(that is, when $\lambda \to 0$) by increasing $\lambda$. Although there is a dip shown in the plot, this dip is not prominent and the relative difference in the cross-validated $\hat{MSPE}$ between the best-subset model before and after Ridge is only $\frac{\hat{MSPE_{bestSubset}} - \hat{MSPE_{Ridge}}}{\hat{MSPE_{bestSubset}}} \times 100 =$ `r 100*(calculateMSPECV(variablesSelectionResults$bestModel, trainingSet, "price", splits) - min(cvfitRidge$cvm))/calculateMSPECV(variablesSelectionResults$bestModel, trainingSet, "price", splits)` $\%$. This suggests that the Ridge regression has only a small effect on model [4.2.1](#VSModel) and that the least squares solution seems already adequate.
+Regarding Ridge on the best-subset model [4.2.1](#VSModel), we obtain the smallest $\hat{MSPE} =$ `r min(cvfitRidge$cvm)` when $\lambda =$ `r cvfitRidge$lambda.min`, which is indeed better than the $\hat{MSPE}$ obtained from simply performing best-subset selection. The left plot in figure \ref{fig:chooseLambda} shows the change in the estimated $\hat{MSPE}$ as we gradually depart from the OLS results(that is, when $\lambda \to 0$) by increasing $\lambda$. Although there is a dip shown in the plot, this dip is not prominent and the relative difference in the cross-validated $\hat{MSPE}$ between the best-subset model before and after Ridge is only $\frac{\hat{MSPE_{bestSubset}} - \hat{MSPE_{Ridge}}}{\hat{MSPE_{bestSubset}}} \times 100 =$ `r 100*(calculateMSPECV(variablesSelectionResults$bestModel, trainingSet, "price", splits) - min(cvfitRidge$cvm))/calculateMSPECV(variablesSelectionResults$bestModel, trainingSet, "price", splits)` $\%$. This suggests that the Ridge regression has only a small effect on model [4.2.1](#VSModel) and that the least squares solution seems already adequate [introduction to statistical learning].
 
 ```{r, FindLambdaCVLasso}
-f <- formula(price ~ precip*bath + dist_am1*parking + dist_am2 + dist_am3 + sqft + elevation)
+f <- formula(price ~ precip*bath + dist_am1*parking + dist_am2 + sqft + elevation)
 X <- model.matrix(f, data=trainingSet)[,-1]
 cvfitLasso <- cv.glmnet(X, trainingSet$price, alpha=1, nfolds=length(splits), type.measure="mse", foldid=folds, thresh=1e-12, maxit=10^8, lambda = lambdaGrid)
-
-predict(glmnet(X, trainingSet$price, alpha=1, lambda=lambdaGrid, maxit=10^8, thresh=1e-12), type="coefficients",s= cvfitLasso$lambda.min, exact=TRUE)
-
-predict(glmnet(X, trainingSet$price, alpha=1, lambda=lambdaGrid, maxit=10^8, thresh=1e-12), type="coefficients",s= cvfitLasso$lambda.1se, exact=TRUE)
 ```
 
+In terms of applying Lasso on the full model, $\lambda =$ `r cvfitLasso$lambda.min` results in the lowest possible $\hat{MSPE}$ of `r min(cvfitLasso$cvm)`. However, in the case of the Lasso it is common to use the _"one standard error"_ rule. According to this rule, we select the least complex model possible(the largest value of $\lambda$) that yields an $\hat{MSPE}$ value which is no larger than one estimated standard error away of the minimum. In our case, the largest possible $\lambda$ is `r cvfitLasso$lambda.1se` which results in $\hat{MSPE} =$ `r cvfitLasso$cvm[cvfitLasso$lambda == cvfitLasso$lambda.1se]`.
 
+In our research, we assess both cases of Lasso regression. Table \ref{tab:LassoVM} shows the coefficient estimates from performing Lasso on the full model with both choices of $\lambda$. Since we are interested in using Lasso mainly as a variable selection method, we will use its results only to exclude variables from the full model. Therefore, the minimum $\lambda$ results indicate merely the removal of the interaction between _"dist\_am1"_ and _"parking"_, while the ones we obtain from using the 1se $\lambda$ suggest the additional removals of _"elevation"_, _"dist\_am2"_ and _"dist\_am1"_. 
 
-```{r, fig.align='center', out.width="0.49\\linewidth", fig.show='hold', fig.cap="\\label{fig:chooseLambda} The change in the estimated MSPE as we increase the regularisation parameter, $\\lambda$. The dashed vertical line corresponds to the chosen $\\lambda$ for each regularised regression method, that yields the best CV MSPE."}
-plot(c(10^-3, 400), c(min(cvfitRidge$cvm)-10^5, max(cvfitRidge$cvm[cvfitRidge$lambda <= 400])), type="n", ylab="Cross-validation MSPE", xlab=expression(lambda), main="Ridge on the best-subset model")
+Assessing the full model when we exclude the variables suggested by Lasso in both cases, we have that the minimum $\lambda$ leads to a value of $\hat{MSPE} =$ `r calculateMSPECV(c("parking", "precip*bath", "dist_am1", "dist_am2", "sqft", "elevation"), trainingSet, "price", splits)` and 1se $\lambda$ results in `r calculateMSPECV(c("parking", "precip*bath", "sqft"), trainingSet, "price", splits)`. We observe that the cross-validated $\hat{MSPE}$ is worse than the one obtained from the best-subset model and we point out that applying Ridge on those models does not improve these results.
+
+```{r, fig.align='center', out.width="0.49\\linewidth", fig.show='hold', fig.cap="\\label{fig:chooseLambda} The change in the estimated MSPE as we increase the regularisation parameter, $\\lambda$. The dashed vertical line corresponds to the chosen $\\lambda$ for each regularised regression method, that yields the best CV MSPE. The solid vertical line corresponds to the largest value of $\\lambda$ such that the resulted $\\hat{MSPE}$ is within 1 estimated standard error of the minimum $\\hat{MSPE}$."}
+plot(c(10^-3, 500), c(min(cvfitRidge$cvm)-10^5, max(cvfitRidge$cvm[cvfitRidge$lambda <= 500])), type="n", ylab="Cross-validation MSPE", xlab=expression(lambda), main="Ridge on the best-subset model")
 lines(cvfitRidge$lambda, cvfitRidge$cvm)
 abline(v=cvfitRidge$lambda.min, col="red", lty=2)
 
 plot(c(10^-3, 4000), c(min(cvfitLasso$cvm)-10^5, max(cvfitLasso$cvm[cvfitLasso$lambda <= 4000])), type="n", ylab="Cross-validation MSPE", xlab=expression(lambda), main="Lasso on the full model")
 lines(cvfitLasso$lambda, cvfitLasso$cvm)
 abline(v=cvfitLasso$lambda.min, col="red", lty=2)
+abline(v=cvfitLasso$lambda.1se, col="red", lty=1)
 ```
 
+```{r LassoVS}
+Lasso_minVM <- predict(glmnet(X, trainingSet$price, alpha=1, lambda=lambdaGrid, maxit=10^8, thresh=1e-12), type="coefficients",s= cvfitLasso$lambda.min, exact=TRUE)[,1]
 
-We tried Ridge on the Lasso variable set with worse results than best-subset. We have also applied ridge straight to the initial model without results. Change lambda grid from 20000 to 40000
+Lasso_1seVM <- predict(glmnet(X, trainingSet$price, alpha=1, lambda=lambdaGrid, maxit=10^8, thresh=1e-12), type="coefficients",s= cvfitLasso$lambda.1se, exact=TRUE)[,1]
 
+LassoVMTable <- data.frame(Min=Lasso_minVM, oneSe=Lasso_1seVM)
+LassoVMTable %>%
+  kable(col.names=c("Estimates with min $\\lambda$", "Estimates with 1se $\\lambda$"),
+        caption="\\label{tab:LassoVM} The parameter estimates from performing Lasso regression on the full model using the training data.")
+```
 
-~~ TODO ~~
-
+TODO: Change lambda grid from 20000 to 40000
 
 # Conclusions
 ~~ TODO ~~
