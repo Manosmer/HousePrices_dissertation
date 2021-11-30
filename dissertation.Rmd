@@ -37,13 +37,22 @@ library(corrplot)
 
 
 # Introduction {#Intro}
+The housing market is an important factor of the global economy both directly as a form of investment and indirectly, because of its strong ties with the overall robustness of the system and its crisis recovery ability [https://www.imf.org/en/News/Articles/2015/09/28/04/53/sp060514]. As Min Zhu, Deputy Managing Director of IMF, stated, _"IMF research shows that of the nearly 50 systemic banking crises in recent decades, more than two thirds were preceded by boom-bust patterns in house prices"_ [https://www.imf.org/en/News/Articles/2015/09/28/04/53/sp060514].
 
+The primary objective of this paper is to find the best possible regression model to accurately _predict_ the sale price of houses. It is desirable that the model allows for a meaningful interpretation, however our main goal is prediction. For this purpose, 500 observations of house sales in the last six months have been collected by a firm, with measurements on the following variables:
 
-## The real estate market and the importance of predictive and descriptive models
+* **elevation**: Elevation of the base of the house
+* **dist_am1**: Distance to Amenity 1
+* **dist_am2**: Distance to Amenity 2
+* **dist_am3**: Distance to Amenity 3
+* **bath**: Number of bathrooms
+* **sqft**: Square footage of the house
+* **parking**: Parking type
+* **precip**: Amount of precipitation
+* **price**: Final House Sale Price
 
-## The purpose of the paper
+The rest of the material in this paper is arranged as follows: in the next section we explore the available variables and their relationships via numerical and graphical summaries to make educated decisions when constructing our models. The following section contains the formal design, application and assessment of statistical regression models using our data with the ultimate goal of finding the best possible predictive model. Finally, we summarise our findings and we note ideas that could extend the analysis of our paper.
 
-## The structure of the paper
 ~~ TODO ~~
 
 
@@ -280,7 +289,7 @@ corrplot::corrplot(cor(houseprices %>% select(-bath, -parking)), method="number"
 
 ### Categorical explanatory variables
 
-Figure \ref{fig:boxplotsCat} depicts the sample distribution of _"price"_ for each level of _"bath"_ or _"parking"_. Regarding _"parking"_, we observe quite a significant overlap between the boxplots with small differences between them suggesting that there is little to no difference in the sale price for houses in different _"parking"_ categories. In contrast, we see that there is no overlap between the boxplots of _"price"_ in different _"bath"_ categories with the sale price actually increasing as the number of bathrooms increases. As it can be seen more clearly in figure \ref{fig:histPricebyBath}, the seemingly normally-distributed sample of _"price"_ is completely partitioned based on _"bath"_ into 4 non-overlapping chunks. These findings indicate strongly that the categorical variable _"bath"_ is a significant predictor with a positive relationship with _"price"_.
+Figure \ref{fig:boxplotsCat} depicts the sample distribution of _"price"_ for each level of _"bath"_ or _"parking"_. Regarding _"parking"_, we observe quite a significant overlap between the boxplots with small differences between them suggesting that there is little to no difference in the sale price for houses in different _"parking"_ categories. In contrast, we see that there is no overlap between the boxplots of _"price"_ in different _"bath"_ categories with the sale price actually increasing as the number of bathrooms increases. As it can be seen more clearly in figure \ref{fig:histPricebyBath}, the seemingly normally-distributed sample of _"price"_ is completely partitioned based on _"bath"_ into 4 non-overlapping chunks. Also, the p-values of the estimated parameters when using a linear regression model with _"bath"_ as our sole predictor are 0, while $R_{(adj)}^2$ reports that we can already explain 86.13% of the total variability in _"price"_. These findings indicate strongly that the categorical variable _"bath"_ is a significant predictor with a positive relationship with _"price"_.
 
 
 ```{r, out.width=".49\\linewidth", fig.align='center', fig.show='hold', fig.width=3, fig.height=3, fig.cap="\\label{fig:boxplotsCat} Boxplots of 'price' by 'bath' and by 'parking'."}
@@ -385,7 +394,7 @@ We achieve this by splitting our original data set into two subsets; training an
 * 450 observations for training and C.V., 
 * 49 observations for assessment
 
-The reason for choosing cross-validation instead of a simple training/validation/test split is to avoid the case of a bad split, especially with a small data set as ours. With K-fold C.V. we are able to use all of our data and calculate a more robust estimate of the average (expected) prediction error [book ESLII]. In practice, we have used both techniques and we have experienced more consistent results from variable selection via cross-validation (even with 5, 6 or 10 folds) than via the simple 3-subset split; small changes on the training set or on the splits used resulted in almost the same final subset of predictors. Also, the choice of the number of folds to use is of great importance as it balances the bias-variance trade-off. However, a usual choice for that number is 5 or 10 folds [Breiman and Spector or Kohavi], which is the choice we made in this paper.
+The reason for choosing cross-validation instead of a simple training/validation/test split is to avoid the case of a bad split, especially with a small data set as ours. With K-fold C.V. we are able to use all of our data and calculate a more robust estimate of the average (expected) prediction error [book ESLII]. In practice, we have used both techniques and we have experienced more consistent results from cross-validation (even with 5, 6 or 10 folds) than from using the simple 3-subset split. That is, small changes in the training set or in the distribution of the splits resulted in almost the same final subset of predictors. Also, the choice of the number of folds to use is of great importance as it balances the bias-variance trade-off. However, a usual choice for that number is 5 or 10 folds [Breiman and Spector or Kohavi], which is the choice we made in this paper.
 
 ```{r datasetSplitting}
 set.seed(1635863590) # set a fixed seed so we get the same results each time we knit
@@ -420,7 +429,7 @@ Finally, we will consider moving beyond the Ordinary Least Squares method by smo
 
 
 ## Fitting the full model
-In section \ref{EDA}, we discussed about the different available variables in our data and we explored numerically and graphically the relationships between them and especially with _"price"_. Based on our findings, we select as our starting model the linear, additive model on the original variables excluding _"dist\_am3"_ and including interactions between _"precip"_ - _"bath"_ and _"dist\_am1"_ - _"parking"_. Therefore, we assume the true relationship is:
+In section \ref{EDA}, we discussed about the different available variables in our data and we explored numerically and graphically the relationships between them, especially with _"price"_. Based on our findings, we select as our starting model the linear, additive model on the original variables excluding _"dist\_am3"_ and including interactions between _"precip"_ - _"bath"_ and _"dist\_am1"_ - _"parking"_. Therefore, we assume the true relationship is:
 
 $$ price_i =  \beta_0 + \beta_1\cdot{\mathbb{I}bath|2_i} + \beta_2\cdot{\mathbb{I}bath|3_i} + \beta_3\cdot{\mathbb{I}bath|4_i} +$$
 $$\beta_4\cdot{\mathbb{I}parking|NoParking_i} + \beta_5\cdot{\mathbb{I}parking|NotProvided_i} + \beta_6\cdot{\mathbb{I}parking|Open_i} +$$
@@ -496,7 +505,7 @@ Lastly, we can calculate the average Mean Squared Prediction Error of the full m
 
 
 
-## Variable Selection via Best-Subset Selection
+## Variable Selection via Best-Subset Selection {#BestSubset}
 
 ```{r variableSelectionFunctions}
 selectVariables <- function(variableVector, trainSet, validSet, responseVar) {
@@ -736,11 +745,20 @@ LassoVMTable %>%
 TODO: Change lambda grid from 20000 to 40000
 
 # Conclusions and Further Work
+
+Our goal throughout this paper was to find the best possible regression model to predict the sale price of houses using the rest of their available attributes. First, we explored our data where we detected and removed an extreme outlier and we uncovered the significant importance of the number of bathrooms a house has on its final sale price. Then, we assessed the relationships between our variables that revealed a possibly significant interaction between the number of bathrooms and the precipitation of a house and forced us to deal with the problem of multicollinearity. Lastly, we formalised the results of our analysis by constructing statistical models and performing variable selection and regularised regression to search for the best predictive model.
+
+According to our findings, we conclude that the best regression model is the best-subset model [4.2.1](#VSModel) that consists of the interaction between the precipitation of a house and the amount of bathrooms it has. Specifically, we found out that as the number of bathrooms increases so does, on average, the sale price and, in fact, the house moves up to a higher price category. As for houses with the same amount of bathrooms, our model predicts that, on average, the price drops with precipitation for houses with 1 bathroom, while it increases when the number of bathrooms is 2 or greater. A more detailed interpretation of the final fitted model has already been provided in subsection \ref{BestSubset}. We report that the expected prediction performance of the best model in terms of its MSPE is `r calculateMSPE(selectedModel, testSet, "price")`.
+
+Finally, we would like to iterate on the ways we believe our work could be extended. At first, there are alternative approaches to the way we handled certain problems. For example, one could use Principal Component Regression by applying PCA on the distance variables to eliminate multicollinearity or the hybrid method of elastic nets instead of the independent use of Ridge and Lasso for performing regularised regression.
+
+Further work:
 1. More variables
 2. Go beyond regression models:
 
   * PCA on distance variables to counter multicolinearity and regression on the 
     full model with the PC instead of distances
+  * Elastic nets
   * k-NN and calculate average neighbours(but first, feature scaling and possibly weighted distance).
 
 ~~ TODO ~~
