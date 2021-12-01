@@ -4,7 +4,7 @@ library(tidyverse)
 library(ggridges)
 library(moderndive)
 
-houseprices <- read.csv("~/Desktop/Glasgow Project/housing.csv")
+houseprices <- read.csv("~/Downloads/housing.csv")
 str(houseprices)
 
 # bath and parking is factor
