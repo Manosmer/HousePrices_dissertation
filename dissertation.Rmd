@@ -51,9 +51,7 @@ The primary objective of this paper is to find the best possible regression mode
 * **precip**: Amount of precipitation
 * **price**: Final House Sale Price
 
-The rest of the material in this paper is arranged as follows: in the next section we explore the available variables and their relationships via numerical and graphical summaries to make educated decisions when constructing our models. The following section contains the formal design, application and assessment of statistical regression models using our data with the ultimate goal of finding the best possible predictive model. Finally, we summarise our findings and we note ideas that could extend the analysis of our paper.
-
-~~ TODO ~~
+The rest of the material in this paper is arranged as follows: in the next section we explore the available variables and their relationships via numerical and graphical summaries to make educated decisions when constructing our models. Section \ref{ModelFitting} contains the formal design, application and assessment of statistical regression models using our data with the ultimate goal of finding the best possible predictive model. Finally, we summarise our findings and we note ideas that could extend the analysis of our paper.
 
 
 # Exploratory Data Analysis {#EDA}
@@ -342,7 +340,7 @@ houseprices %>%
 ```{r}
 get_regression_table(lm(price ~ dist_am1*parking, data=houseprices)) %>%
   select(term, estimate, p_value, lower_ci, upper_ci) %>%
-  kable(caption="\\label{tab:distam1ParkingFit} The regression coefficient estimates, p_values and 95% C.Is from fitting the linear model with just an interaction between 'dist\\_am1' and 'parking'.")
+  kable(caption="\\label{tab:distam1ParkingFit} The regression coefficient estimates, p_values and 95% C.Is from fitting the interaction between 'dist\\_am1' and 'parking' model.")
 ```
 
 
@@ -435,8 +433,8 @@ $$ price_i =  \beta_0 + \beta_1\cdot{\mathbb{I}bath|2_i} + \beta_2\cdot{\mathbb{
 $$\beta_4\cdot{\mathbb{I}parking|NoParking_i} + \beta_5\cdot{\mathbb{I}parking|NotProvided_i} + \beta_6\cdot{\mathbb{I}parking|Open_i} +$$
 $$\beta_7\cdot{sqft_i} + \beta_8\cdot{elevation_i} + \beta_{9}\cdot{dist\_am2_i} +$$
 $$\beta_{10}\cdot{precip_i} + \beta_{11}\cdot{\mathbb{I}bath|2_i}\cdot{precip_i} + \beta_{12}\cdot{\mathbb{I}bath|3_i}\cdot{precip_i} + \beta_{13}\cdot{\mathbb{I}bath|4_i}\cdot{precip_i} +$$
-$$\beta_{14}\cdot{dist\_am1_i} + \beta_{15}\cdot{\mathbb{I}parking|NoParking_i}\cdot{dist\_am1_i} + \beta_{16}\cdot{\mathbb{I}parking|NotProvided_i}\cdot{dist\_am1_i} +$$
-$$\beta_{17}\cdot{\mathbb{I}parking|Open_i}\cdot{dist\_am1_i}$$
+$$\beta_{14}\cdot{dist\_am1_i} + \beta_{15}\cdot{\mathbb{I}parking|NoParking_i}\cdot{dist\_am1_i} +$$
+$$\beta_{16}\cdot{\mathbb{I}parking|NotProvided_i}\cdot{dist\_am1_i} + \beta_{17}\cdot{\mathbb{I}parking|Open_i}\cdot{dist\_am1_i}$$
 $$+~\epsilon_i,~~~~\epsilon_i \stackrel{indep.}\sim N(0, \sigma^2), ~~~ i=1,...,450$$
 
 , where the indicator variables(starting with $\mathbb{I}$) are equal to $1$ when the $i^{th}$ observation's corresponding categorical variable takes the relevant value(separated from the variable name with "|") and $0$ otherwise. The baseline categories are **1** for _"bath"_ and **Covered** for _"parking"_.
@@ -496,7 +494,7 @@ full_model_RSS <- sum( (trainingSet$price - fullModel$fitted.values)^2 )
 
 get_regression_table(fullModel) %>%
   select(term, estimate, p_value, lower_ci, upper_ci) %>%
-  kable(caption = "\\label{tab:FullModelFit} The estimated regression coefficients along with the corresponding p-values and 95% Confidence Intervals from fitting the full model on the training set.")
+  kable(caption = "\\label{tab:FullModelFit} The estimated regression coefficients, p-values and 95% CI from fitting the full model on the training set.")
 
 fullModelAverageMSPE <- calculateMSPECV(fullmodel_variables, trainingSet, "price", splits)
 ```
@@ -610,7 +608,7 @@ selectedModel_RSS <- sum( (trainingSet$price - selectedModel$fitted.values)^2 )
 
 data.frame("removedVars"=selectionTable[,1], "MSPE"=selectionTable[,2]) %>%
   kable(col.names = c("Removed variable", "cross-validated $\\hat{MSPE}$ after removal"),
-        caption="\\label{tab:variableSelection} Results from performing variable selection via backward elimination on the full model. The left column contains the removed variables in the order of removal, while the right one shows the average $\\hat{MSPE}$ from 5-fold C.V. after the removal of the variable on the left. The full model with its average $\\hat{MSPE}$ is displayed in the first row for reference.", align="c")
+        caption="\\label{tab:variableSelection} Variable selection via backward elimination on the full model. Left column: the removed variables in the order of removal. Right column: the average $\\hat{MSPE}$ from 5-fold CV after the removal of the variable on the left. The full model's $\\hat{MSPE}$ is displayed in the first row for reference.", align="c")
 ```
 
 Table \ref{tab:variableSelection} shows the process of applying the aforementioned variable selection method on our full model. Apparently, the method managed to reduce the average $\hat{MSPE}$ down to `r calculateMSPECV(variablesSelectionResults$bestModel, trainingSet, "price", splits)` from the initial, full model's value of `r fullModelAverageMSPE`. As a result, we now update our assumption about the true relationship between _"price"_ and our predictors in the population such that:
@@ -625,12 +623,12 @@ The results from fitting model [4.2.1](#VSModel) on the training data set are sh
 
 * **for every 1 unit increase in precipitation**, the expected sale price of a house decreases, on average, by 50.454 for houses with 1 bathroom. However, the expected price seems to increase, on average, by 18.277, 3.206 or 39.697 per each unit increase in precipitation when the houses have 2, 3 or 4 bathrooms, respectively. The p-values of the estimates suggest that there is a statistically significant difference in the slopes of _"precip"_ between the categories of 1 and 2 bathrooms. Although we do not have enough evidence of a significant difference in the slopes between the rest of the categories, the reported p-values are very small(<10%) and some are close to 5%.
 
-It is, also, worth mentioning that $R_{(adj)}^2$, which takes the complexity of the used model into account, improves from the full model's value of `r 1 - ( full_model_RSS/(nrow(trainingSet)-19) )/( TSS/(nrow(trainingSet)-1) )` to `r 1 - ( selectedModel_RSS/(nrow(trainingSet)-8) )/( TSS/(nrow(trainingSet)-1) )`, suggesting that the predictors in model [4.2.1](#VSModel) are able to explain 86.23% of the variation in the sale price.
+It is, also, worth mentioning that $R_{(adj)}^2$, which takes the complexity of the used model into account, improves from the full model's value of `r 1 - ( full_model_RSS/(nrow(trainingSet)-18) )/( TSS/(nrow(trainingSet)-1) )` to `r 1 - ( selectedModel_RSS/(nrow(trainingSet)-8) )/( TSS/(nrow(trainingSet)-1) )`, suggesting that the predictors in model [4.2.1](#VSModel) are able to explain 86.23% of the variation in the sale price.
 
 ```{r}
 get_regression_table(selectedModel) %>%
   select(term, estimate, p_value, lower_ci, upper_ci) %>%
-  kable(caption="\\label{tab:varSelModel} The final model fitted on the training set after performing best-subset selection.")
+  kable(caption="\\label{tab:varSelModel} Estimates, p-values and 95% CI from fitting model 4.2.1 on the training set.")
 ```
 
 However, the interpretation of model [4.2.1](#VSModel) and its application in predicting sale prices are meaningless if the assumptions we made prior to fitting our model are violated. In reality, there is no formal way of checking the validity of those assumptions. However, the plots of the residuals in figure \ref{fig:VSassumptions} are commonly used in order to check the assumptions of our multiple linear regression model [4.2.1](#VSModel), as described in the book _"Linear Models with R"_ by J.J. Faraway[book]. 
@@ -720,7 +718,7 @@ In our research, we assess both cases of Lasso regression. Table \ref{tab:LassoV
 
 Assessing the full model when we exclude the variables suggested by Lasso in both cases, we have that the minimum $\lambda$ leads to a value of $\hat{MSPE} =$ `r calculateMSPECV(c("parking", "precip*bath", "dist_am1", "dist_am2", "sqft", "elevation"), trainingSet, "price", splits)` and 1se $\lambda$ results in `r calculateMSPECV(c("parking", "precip*bath", "sqft"), trainingSet, "price", splits)`. We observe that the cross-validated $\hat{MSPE}$ is worse than the one obtained from the best-subset model and we point out that applying Ridge on those models does not improve these results.
 
-```{r, fig.align='center', out.width="0.49\\linewidth", fig.show='hold', fig.cap="\\label{fig:chooseLambda} The change in the estimated MSPE as we increase the regularisation parameter, $\\lambda$. The dashed vertical line corresponds to the chosen $\\lambda$ for each regularised regression method, that yields the best CV MSPE. The solid vertical line corresponds to the largest value of $\\lambda$ such that the resulted $\\hat{MSPE}$ is within 1 estimated standard error of the minimum $\\hat{MSPE}$."}
+```{r, fig.align='center', out.width="0.49\\linewidth", fig.show='hold', fig.cap="\\label{fig:chooseLambda} Cross-validation MSPE as we increase $\\lambda$. The dashed vertical line corresponds to the chosen $\\lambda$ for each regularised regression method with the best CV MSPE. The solid vertical line corresponds to the largest value of $\\lambda$ such that the resulted $\\hat{MSPE}$ is within 1 estimated standard error of the minimum $\\hat{MSPE}$."}
 plot(c(10^-3, 500), c(min(cvfitRidge$cvm)-10^5, max(cvfitRidge$cvm[cvfitRidge$lambda <= 500])), type="n", ylab="Cross-validation MSPE", xlab=expression(lambda), main="Ridge on the best-subset model")
 lines(cvfitRidge$lambda, cvfitRidge$cvm)
 abline(v=cvfitRidge$lambda.min, col="red", lty=2)
@@ -744,23 +742,14 @@ LassoVMTable %>%
 
 TODO: Change lambda grid from 20000 to 40000
 
-# Conclusions and Further Work
+# Conclusions and Future Work
 
-Our goal throughout this paper was to find the best possible regression model to predict the sale price of houses using the rest of their available attributes. First, we explored our data where we detected and removed an extreme outlier and we uncovered the significant importance of the number of bathrooms a house has on its final sale price. Then, we assessed the relationships between our variables that revealed a possibly significant interaction between the number of bathrooms and the precipitation of a house and forced us to deal with the problem of multicollinearity. Lastly, we formalised the results of our analysis by constructing statistical models and performing variable selection and regularised regression to search for the best predictive model.
+Our goal throughout this paper was to find the best possible regression model to predict the sale price of houses using the rest of their available attributes. First, we explored our data where we detected and removed an extreme outlier and we uncovered the significant importance of the number of bathrooms a house has on its final sale price. Then, we assessed the relationships between our variables that revealed a possibly significant interaction between the number of bathrooms and the precipitation of a house and indicated the existence of multicollinearity. Lastly, we formalised our results by constructing statistical models and performing variable selection and regularised regression to search for the best predictive model.
 
-According to our findings, we conclude that the best regression model is the best-subset model [4.2.1](#VSModel) that consists of the interaction between the precipitation of a house and the amount of bathrooms it has. Specifically, we found out that as the number of bathrooms increases so does, on average, the sale price and, in fact, the house moves up to a higher price category. As for houses with the same amount of bathrooms, our model predicts that, on average, the price drops with precipitation for houses with 1 bathroom, while it increases when the number of bathrooms is 2 or greater. A more detailed interpretation of the final fitted model has already been provided in subsection \ref{BestSubset}. We report that the expected prediction performance of the best model in terms of its MSPE is `r calculateMSPE(selectedModel, testSet, "price")`.
+According to our findings, we conclude that the best regression model is the best-subset model [4.2.1](#VSModel) that consists of the interaction between the precipitation of a house and the amount of bathrooms it has. Specifically, we found out that as the number of bathrooms increases so does, on average, the sale price and, in fact, the house moves up to a higher price category. As for houses with the same amount of bathrooms, our model predicts that, on average, the price drops with precipitation for houses with 1 bathroom, but it increases when the number of bathrooms is 2 or greater. A more detailed interpretation of the final fitted model has already been provided in subsection \ref{BestSubset}. We report that the expected prediction performance of the best model in terms of its MSPE is `r calculateMSPE(selectedModel, testSet, "price")` (using the test set).
 
-Finally, we would like to iterate on the ways we believe our work could be extended. At first, there are alternative approaches to the way we handled certain problems. For example, one could use Principal Component Regression by applying PCA on the distance variables to eliminate multicollinearity or the hybrid method of elastic nets instead of the independent use of Ridge and Lasso for performing regularised regression.
-
-Further work:
-1. More variables
-2. Go beyond regression models:
-
-  * PCA on distance variables to counter multicolinearity and regression on the 
-    full model with the PC instead of distances
-  * Elastic nets
-  * k-NN and calculate average neighbours(but first, feature scaling and possibly weighted distance).
-
-~~ TODO ~~
+Finally, we would like to iterate on the ways we believe our work could be extended. There are alternative approaches to the way we handled certain problems. For example, one could use Principal Component Regression by applying PCA on the distance variables to eliminate multicollinearity or the hybrid method of elastic nets instead of the use of Ridge and Lasso for performing regularised regression. Additionally, k-NN with weighted distance or neural networks could be used and compared to the results we obtained from least squares, variable selection and regularisation.
 
 # References
+
+<div id="refs"></div>
