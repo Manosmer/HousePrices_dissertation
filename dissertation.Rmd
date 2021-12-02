@@ -19,7 +19,7 @@ fontsize: 12pt
 bibliography: references.bib
 csl: ieee.csl
 link-citations: yes
-abstract: "Importance of Housing market. Objective. Main approach: OLS and best-subset with 5-fold CV. Also, regularised. Best model is the best-subset. More about results and future work."
+abstract: "The housing market constitutes a significant index of the global economy and the prediction of its behaviour, although difficult, is of great importance. The purpose of this paper is the construction of the best possible predictive regression model to predict the sale price of houses. Our work constists of exploring and analysing a data set of 500 observations of house sales in the last six months, containing various attributes of the sold houses. In order to find the best model, we apply the Ordinary Least Squares method along with best-subset selection via backward elimination and we assess the results using the estimated cross-validated Mean Squared Prediction Error. Additionally, Ridge and Lasso regression are used to expand our work beyond OLS and explore the possible improvement of our results. Our findings indicate that the best predictive model is the best-subset model we found via backward elimination. Finally, we provide an interpretation of our chosen model and we remark on ways that can extend the work of this paper."
 ---
 
 ```{r setup, include=FALSE}
@@ -120,7 +120,7 @@ skimr::yank(skimmed, "numeric") %>%
 
 As a first step, we are interested in the summary statistics of the individual numerical and categorical variables in our data. Tables \ref{tab:statsCatOriginal} and \ref{tab:statsNumOriginal} contain useful statistics about the variables, prior to making any alterations to the original data set. We note that there are no missing values for any of our variables in the data.
 
-Regarding the categorical variables, we observe that there are five and four unique levels for the categorical variables _"bath"_ and _"parking"_, respectively. Table \ref{tab:statsCatOriginal} shows that most of the sale entries refer to houses with two baths or an "open" parking type. However, the most important observation to note here is a single entry with 63 bathrooms, which is exceedingly higher than all the rest observations in our data that are limited to just 4 bathrooms at maximum. Such an observation is likely to be an outlier and the exploratory analysis that follows underpins this assumption further.
+Regarding the categorical variables, we observe that there are five and four unique levels for the categorical variables _"bath"_ and _"parking"_, respectively. Table \ref{tab:statsCatOriginal} shows that most of the sale entries refer to houses with two baths or an "open" parking type. However, the most important observation to note here is a single entry with 63 bathrooms, which is exceedingly higher than all the rest observations in our data that are limited to just 4 bathrooms at most. Such an observation is likely to be an outlier and the exploratory analysis that follows underpins this assumption further.
 
 Table \ref{tab:statsNumOriginal} shows statistics about the numerical variables. It becomes apparent that the numerical variables are measured in different numerical scales with differences in the magnitude of their values. In terms of magnitude and standard deviation in ascending order:
 
@@ -388,7 +388,7 @@ get_regression_table(lm(price ~ dist_am1*parking, data=houseprices)) %>%
 
 # Model Fitting: Selecting the best possible regression model {#ModelFitting}
 
-The **primary objective** of this paper is to construct the best possible _predictive_ regression model to accurately predict the sale price of a house. Our main approach consists of the "Ordinary Least Squares" method for model estimation and "**best-subset selection on the full model via backward elimination**" for finding the best model. 
+The **primary objective** of this paper is to construct the best possible _predictive_ regression model to accurately predict the sale price of a house. Our main approach consists of the "Ordinary Least Squares" method for model estimation and "**best-subset selection via backward elimination on the full model**" for finding the best model. 
 
 For this purpose, we decided on assessing our models' performance and conduct variable selection based on the average **Mean Squared (Prediction) Error** calculated using 5-fold cross-validation(C.V.) on the training data:
 
@@ -496,9 +496,6 @@ fullmodel_variables <- c("bath", "parking", "precip", "precip*bath", "dist_am1",
 
 fullModel <- lm( paste("price", joinVariables( fullmodel_variables ), sep=" ~ "), data=trainingSet)
 
-TSS <- sum( (trainingSet$price - mean(trainingSet$price))^2 )
-full_model_RSS <- sum( (trainingSet$price - fullModel$fitted.values)^2 )
-
 get_regression_table(fullModel) %>%
   select(term, estimate, p_value, lower_ci, upper_ci) %>%
   kable(caption = "\\label{tab:FullModelFit} The estimated regression coefficients, p-values and 95% CI from fitting the full model on the training set.")
@@ -598,7 +595,7 @@ Although the full model is a good starting point to consider all predictors that
 
 Since our goal is to construct the best predictive model, we wish to minimise the average $\hat{MSPE}$ we obtain from cross-validation as much as possible and the method we chose to achieve this is **best-subset selection via backward elimination on the full model**. This iterative method starts by removing one predictor at a time from the full model and calculates the average $\hat{MSPE}$ after each removal by performing 5-fold C.V. on the training set, until each predictor is removed once. Then, the method identifies the predictor that resulted in the best(lowest) $\hat{MSPE}$ value after its removal and updates the model such that it does not contain this predictor any longer. The method continues by seeking the next best predictor to remove on the updated model. This process is repeated until either there is only one predictor left or no more improvement can be achieved. 
 
-In simple words, we decrease the overall complexity of our model by gradually removing unnecessary variables, while we continuously monitor the improvement of the $\hat{MSPE}$ averaged over the 5 folds of our data, until we reach the best possible value. It is easy to realise that this method belongs to the family of greedy algorithms as it consists of a series of consecutive, independent and non-reversible steps at which the optimal solution is chosen each time.
+In other words, we decrease the overall complexity of our model by gradually removing unnecessary variables, while we continuously monitor the improvement of the $\hat{MSPE}$ averaged over the 5 folds of our data, until we reach the best possible value. It is easy to realise that this method belongs to the family of greedy algorithms as it consists of a series of consecutive, independent and non-reversible steps at which the optimal solution is chosen each time.
 
 
 ```{r variableSelection}
@@ -611,7 +608,6 @@ selectionTable <- rbind(selectionTable, cbind(variablesSelectionResults$removedV
 selectionTable <- selectionTable[-nrow(selectionTable),] # precip is shown as removed, but precip*bath exists in the model
 
 selectedModel <- lm(paste("price", joinVariables(variablesSelectionResults$bestModel), sep=" ~ "), data=trainingSet)
-selectedModel_RSS <- sum( (trainingSet$price - selectedModel$fitted.values)^2 )
 
 data.frame("removedVars"=selectionTable[,1], "MSPE"=selectionTable[,2]) %>%
   kable(col.names = c("Removed variable", "cross-validated $\\hat{MSPE}$ after removal"),
@@ -656,7 +652,7 @@ Finally, we observe a fairly equal scattering of the points about the 0 line acr
 
 Using the "Normal Q-Q" plot, we can check the assumption of normally distributed errors. The plot exhibits a light and a heavy tail and it does not have the _ideal_ shape. However, given the fact that we are modelling real-life data, it is reasonable to think that the points follow the dashed line adequately and the assumption holds. The same can be inferred from the supplemental histogram of residuals, which resembles the bell shape of the Normal distribution but not perfectly.
 
-Lastly, we wish to look for any influential observations that we might need to discard as they could incorrectly draw the direction of the relationship towards them. Although the rest of the plots report consistently the observations "32" and "438" as possible outliers, the plot of the residuals against leverage shows no observations within the contour lines of Cook's distance. Therefore, we choose not to remove any additional observations.
+Finally, we wish to look for any influential observations that we might need to discard as they could incorrectly draw the direction of the relationship towards them. Although the rest of the plots report consistently the observations "32" and "438" as possible outliers, the plot of the residuals against leverage shows no observations within the contour lines of Cook's distance. Therefore, we choose not to remove any additional observations.
 
 
 ## Regularised regression with Ridge and Lasso
@@ -672,8 +668,8 @@ Although the OLS estimates can be considered as unbiased when the correct parame
 In Lasso and Ridge, we exploit the loss function by integrating a penalty term for each parameter estimate that is related to its absolute value. Specifically, regardless of the data set we happen to have, parameter estimates with high absolute value result in more loss because of their penalty term, thus leading to the need of an equilibrium between avoiding penalisation and achieving the closest fit. Consequently, the use of penalties constrains the magnitude of the estimates consistently and biases them towards 0, making them less variable. Essentially, we try to strike the correct balance of bias and variance by introducing a small amount of bias in exchange to much less variance.
 
 The loss function of the regularised regression has the following form:
-$$L(\vec{\theta}) = \sum_{i=1}^n{[y_i - (\theta_0 + \vec{\theta}\cdot \vec{x_i})]^2} + \lambda \cdot r(\vec{\theta}), ~~~~~\vec{\theta}=(\theta_1,\theta_2,...,\theta_p), ~~\theta_0: intercept$$
-, where the sum is the Residual Sum of Squares, $r(\vec{\theta})$ is the penalty function of the regression parameters and $\lambda$ is a hyperparameter called _regularisation parameter_ that adjusts the weight of the penalty and, therefore, the amount of constraint imposed on the parameter estimates.
+$$L(\vec{\theta}) = \sum_{i=1}^n{[y_i - (\theta_0 + \vec{x_i}^T \cdot \vec{\theta})]^2} + \lambda \cdot r(\vec{\theta}), ~~~~~\vec{\theta}=(\theta_1,\theta_2,...,\theta_p), ~~\theta_0: intercept$$
+, where the sum is the Residual Sum of Squares, $r(\vec{\theta})$ is the penalty function of the regression parameters and $\lambda$ is a hyperparameter called the _regularisation parameter_ that adjusts the weight of the penalty and, therefore, the amount of constraint imposed on the parameter estimates.
 
 The difference between the two regularised regression methods is in their penalty function:
 
@@ -697,7 +693,7 @@ for(i in 1:450) {
   }
 }
 
-lambdaGrid <- 10^seq(16, -3, length=2000)
+lambdaGrid <- 10^seq(16, -3, length=40000)
 ```
 
 
@@ -746,7 +742,6 @@ LassoVMTable %>%
         caption="\\label{tab:LassoVM} The parameter estimates from performing Lasso regression on the full model using the training data.")
 ```
 
-TODO: Change lambda grid from 20000 to 40000
 
 # Conclusions and Future Work
 
